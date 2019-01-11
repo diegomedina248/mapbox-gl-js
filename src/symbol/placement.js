@@ -64,30 +64,27 @@ class JointPlacement {
     }
 }
 
-function calculateDynamicShift(anchor, width, height, radialOffset, textBoxScale) {
+function calculateDynamicLayoutOffset(anchor, width, height, radialOffset, textBoxScale): Point {
     const {horizontalAlign, verticalAlign} = getAnchorAlignment(anchor);
     const shiftX = -(horizontalAlign - 0.5) * width;
     const shiftY = -(verticalAlign - 0.5) * height;
     const offset = radialOffset ? getDynamicOffset(anchor, radialOffset) : [0, 0];
-    return {
-        x: shiftX + offset[0] * textBoxScale,
-        y: shiftY + offset[1] * textBoxScale
-    }
+    return new Point(
+        shiftX + offset[0] * textBoxScale,
+        shiftY + offset[1] * textBoxScale
+    );
 }
 
 function shiftDynamicCollisionBox(collisionBox: SingleCollisionBox,
                                   shiftX: number, shiftY: number,
                                   angle: number) {
     const {x1, x2, y1, y2, anchorPointX, anchorPointY} = collisionBox;
-    const combinedOffset = new Point(
-        shiftX,
-        shiftY).rotate(angle);
-    // offset unit is ems, so we need to convert it to tile pixel units by mutiplying it by textBoxScale
+    const rotatedOffset = new Point(shiftX, shiftY).rotate(angle);
     return {
-        x1: x1 + combinedOffset.x,
-        y1: y1 + combinedOffset.y,
-        x2: x2 + combinedOffset.x,
-        y2: y2 + combinedOffset.y,
+        x1: x1 + rotatedOffset.x,
+        y1: y1 + rotatedOffset.y,
+        x2: x2 + rotatedOffset.x,
+        y2: y2 + rotatedOffset.y,
         // symbol anchor point stays the same regardless of text-anchor
         anchorPointX,
         anchorPointY
@@ -159,24 +156,6 @@ class CollisionGroups {
     }
 }
 
-type DynamicTextOffsets = {
-    // [shiftX, shiftY]
-    right: [number, number],
-    center: [number, number],
-    left: [number, number]
-};
-
-
-function centerAnchor(anchor) {
-    return anchor === "top" || anchor === "center" || anchor === "bottom";
-}
-function leftAnchor(anchor) {
-    return anchor === "top-left" || anchor === "left" || anchor === "bottom-left";
-}
-function rightAnchor(anchor) {
-    return anchor === "top-right" || anchor === "right" || anchor === "bottom-right";
-}
-
 export function getDynamicOffset(anchor, radialOffset) {
     let x = 0, y = 0;
     // solve for r where r^2 + r^2 = radialOffset^2
@@ -224,7 +203,7 @@ export class Placement {
     collisionIndex: CollisionIndex;
     placements: { [string | number]: JointPlacement };
     opacities: { [string | number]: JointOpacityState };
-    dynamicOffsets: {[string | number]: DynamicTextOffsets };
+    dynamicOffsets: {[string | number]: any };
     commitTime: number;
     lastPlacementChangeTime: number;
     stale: boolean;
@@ -392,10 +371,7 @@ export class Placement {
 
                         const width = textBox.x2 - textBox.x1;
                         const height = textBox.y2 - textBox.y1;
-                        const shift = calculateDynamicShift(anchor,
-                            width,
-                            height,
-                            dynamicTextOffset, textBoxScale);
+                        const shift = calculateDynamicLayoutOffset(anchor, width, height, dynamicTextOffset, textBoxScale);
 
                         if (collisionArrays.textBox) {
                             shiftedCollisionBox = shiftDynamicCollisionBox(
@@ -413,13 +389,13 @@ export class Placement {
                                 }
                                 assert(symbolInstance.crossTileID !== 0);
                                 this.dynamicOffsets[symbolInstance.crossTileID] = {
-                                    dynamicTextOffset,
+                                    radialOffset: dynamicTextOffset,
                                     width,
                                     height,
                                     anchor,
-                                    textBoxScale, // TODO: lazy way to do layout:render text size ratio
+                                    textBoxScale,
                                     prevAnchor
-                                }
+                                };
                                 this.hideUnplacedJustifications(bucket, justification, symbolInstance);
                                 break;
                             }
@@ -433,7 +409,7 @@ export class Placement {
                             this.dynamicOffsets[symbolInstance.crossTileID] = prevOffset;
                             this.hideUnplacedJustifications(bucket,
                                 getAnchorJustification(prevOffset.anchor), symbolInstance);
-                            }
+                        }
                     }
                 }
 
@@ -573,7 +549,6 @@ export class Placement {
             }
         }
         for (const crossTileID in prevOffsets) {
-            // TODO: Need garbage collection once fade is done
             if (!this.dynamicOffsets[crossTileID] && this.opacities[crossTileID] && !this.opacities[crossTileID].isHidden()) {
                 this.dynamicOffsets[crossTileID] = prevOffsets[crossTileID];
             }
@@ -595,22 +570,18 @@ export class Placement {
         for (const tile of tiles) {
             const symbolBucket = ((tile.getBucket(styleLayer): any): SymbolBucket);
             if (symbolBucket && tile.latestFeatureIndex && styleLayer.id === symbolBucket.layerIds[0]) {
-                this.updateBucketOpacities(symbolBucket, seenCrossTileIDs, tile.collisionBoxArray, tile.tileID.overscaledZ);
+                this.updateBucketOpacities(symbolBucket, seenCrossTileIDs, tile.collisionBoxArray);
             }
         }
     }
 
-    shiftPlacedSymbols(bucket: SymbolBucket, placedSymbolIndex: number, isHidden: boolean, dynamicOffset: ?[number, number]) {
+    hidePlacedSymbols(bucket: SymbolBucket, placedSymbolIndex: number, isHidden: boolean) {
         if (placedSymbolIndex > -1) {
             bucket.text.placedSymbolArray.get(placedSymbolIndex).hidden = isHidden ? 1 : 0;
-            // if (!isHidden && dynamicOffset) {
-            //     bucket.text.placedSymbolArray.get(placedSymbolIndex).shiftX = dynamicOffset[0];
-            //     bucket.text.placedSymbolArray.get(placedSymbolIndex).shiftY = dynamicOffset[1];
-            // }
         }
     }
 
-    updateBucketOpacities(bucket: SymbolBucket, seenCrossTileIDs: { [string | number]: boolean }, collisionBoxArray: ?CollisionBoxArray, overscaledZ: number) {
+    updateBucketOpacities(bucket: SymbolBucket, seenCrossTileIDs: { [string | number]: boolean }, collisionBoxArray: ?CollisionBoxArray) {
         if (bucket.hasTextData()) bucket.text.opacityVertexArray.clear();
         if (bucket.hasIconData()) bucket.icon.opacityVertexArray.clear();
         if (bucket.hasCollisionBoxData()) bucket.collisionBox.collisionVertexArray.clear();
@@ -618,11 +589,6 @@ export class Placement {
 
         const layout = bucket.layers[0].layout;
         const duplicateOpacityState = new JointOpacityState(null, 0, false, false, true);
-        const duplicateDynamicShifts = {
-            right: [-Infinity, -Infinity],
-            center: [-Infinity, -Infinity],
-            left: [-Infinity, -Infinity]
-        };
         const textAllowOverlap = layout.get('text-allow-overlap');
         const iconAllowOverlap = layout.get('icon-allow-overlap');
         const dynamicPlacement = layout.get('dynamic-text-anchor');
@@ -650,8 +616,7 @@ export class Placement {
                 centerJustifiedTextSymbolIndex,
                 leftJustifiedTextSymbolIndex,
                 verticalPlacedTextSymbolIndex,
-                crossTileID,
-                layoutTextSize
+                crossTileID
             } = symbolInstance;
 
             const isDuplicate = seenCrossTileIDs[crossTileID];
@@ -689,14 +654,10 @@ export class Placement {
                 // symbol instances appropriately so that symbols from buckets that have yet to be placed
                 // offset appropriately.
                 const hide = opacityState.text.isHidden();
-                this.shiftPlacedSymbols(bucket, verticalPlacedTextSymbolIndex, hide);
-                // TODO: Better hiding logic, make sure dynamicOffset is always set to _something_
-                this.shiftPlacedSymbols(bucket, centerJustifiedTextSymbolIndex, hide);
-                    //|| (dynamicPlacement && dynamicOffset && !centerAnchor(dynamicOffset.anchor)));
-                this.shiftPlacedSymbols(bucket, leftJustifiedTextSymbolIndex, hide);
-                    //|| (dynamicPlacement && dynamicOffset && !leftAnchor(dynamicOffset.anchor)));
-                this.shiftPlacedSymbols(bucket, rightJustifiedTextSymbolIndex, hide);
-                    //|| (dynamicPlacement && dynamicOffset && !rightAnchor(dynamicOffset.anchor)));
+                this.hidePlacedSymbols(bucket, verticalPlacedTextSymbolIndex, hide);
+                this.hidePlacedSymbols(bucket, centerJustifiedTextSymbolIndex, hide);
+                this.hidePlacedSymbols(bucket, leftJustifiedTextSymbolIndex, hide);
+                this.hidePlacedSymbols(bucket, rightJustifiedTextSymbolIndex, hide);
                 const prevOffset = this.dynamicOffsets[symbolInstance.crossTileID];
                 if (prevOffset) {
                     this.hideUnplacedJustifications(bucket, getAnchorJustification(prevOffset.anchor), symbolInstance);
@@ -717,19 +678,17 @@ export class Placement {
                 const collisionArrays = bucket.collisionArrays[s];
                 if (collisionArrays) {
                     if (collisionArrays.textBox) {
-                        let shiftX = 0, shiftY = 0;
+                        let shift = new Point(0, 0);
                         if (dynamicPlacement && opacityState.text.placed) {
-                            const textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize);
                             const dynamicOffset = this.dynamicOffsets[crossTileID];
-                            const shift = calculateDynamicShift(dynamicOffset.anchor,
+                            shift = calculateDynamicLayoutOffset(dynamicOffset.anchor,
                                dynamicOffset.width,
                                dynamicOffset.height,
                                dynamicOffset.dynamicTextOffset,
                                dynamicOffset.textBoxScale);
-                            shiftX = shift.x; shiftY = shift.y;
                         }
 
-                        updateCollisionVertices(bucket.collisionBox.collisionVertexArray, opacityState.text.placed, false, shiftX, shiftY);
+                        updateCollisionVertices(bucket.collisionBox.collisionVertexArray, opacityState.text.placed, false, shift.x, shift.y);
                     }
 
                     if (collisionArrays.iconBox) {
