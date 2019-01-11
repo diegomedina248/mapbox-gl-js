@@ -156,7 +156,7 @@ class CollisionGroups {
     }
 }
 
-export function getDynamicOffset(anchor, radialOffset) {
+export function getDynamicOffset(anchor: string, radialOffset: number) {
     let x = 0, y = 0;
     // solve for r where r^2 + r^2 = radialOffset^2
     const hypotenuse = radialOffset / Math.sqrt(2);
@@ -210,8 +210,9 @@ export class Placement {
     fadeDuration: number;
     retainedQueryData: {[number]: RetainedQueryData};
     collisionGroups: CollisionGroups;
+    prevPlacement: ?Placement;
 
-    constructor(transform: Transform, fadeDuration: number, crossSourceCollisions: boolean, prevPlacement: Placement) {
+    constructor(transform: Transform, fadeDuration: number, crossSourceCollisions: boolean, prevPlacement?: Placement) {
         this.transform = transform.clone();
         this.collisionIndex = new CollisionIndex(this.transform);
         this.placements = {};
@@ -503,10 +504,9 @@ export class Placement {
             if (i.index < 0) continue;
             if (i.justification !== placedJustification) {
                 // shift offscreen
-                bucket.text.placedSymbolArray.get(i.index).shiftX = false;
+                bucket.text.placedSymbolArray.get(i.index).crossTileID = 0;
             } else {
-                bucket.text.placedSymbolArray.get(i.index).shiftX = true;
-                bucket.text.placedSymbolArray.get(i.index).shiftY = symbolInstance.crossTileID;
+                bucket.text.placedSymbolArray.get(i.index).crossTileID = symbolInstance.crossTileID;
             }
         }
     }

@@ -72,8 +72,7 @@ export const placement = createLayout([
     { type: 'Float32', name: 'lineOffsetY' },
     { type: 'Uint8', name: 'writingMode' },
     { type: 'Uint8', name: 'hidden' },
-    { type: 'Float32', name: 'shiftX'},
-    { type: 'Float32', name: 'shiftY'}
+    { type: 'Uint32', name: 'crossTileID'}
 ]);
 
 export const symbolInstance = createLayout([

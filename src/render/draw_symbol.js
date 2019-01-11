@@ -102,17 +102,12 @@ function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOff
     dynamicLayoutVertexArray.clear();
     for (let s = 0; s < placedSymbols.length; s++) {
         const symbol: any = placedSymbols.get(s);
-        if (symbol.hidden) {
+        const dynamicOffset = (!symbol.hidden && symbol.crossTileID) ? dynamicOffsets[symbol.crossTileID] : null;
+        if (!dynamicOffset) {
             // These symbols are from a justification that is not being used, or a label that wasn't placed
             // so we don't need to do the extra math to figure out what incremental shift to apply.
             symbolProjection.hideGlyphs(symbol.numGlyphs, dynamicLayoutVertexArray);
         } else  {
-            const crossTileID = symbol.shiftY; // MWHAHAHAHAHA
-            const dynamicOffset = dynamicOffsets[crossTileID];
-            if (!dynamicOffset || !symbol.shiftX) {
-                symbolProjection.hideGlyphs(symbol.numGlyphs, dynamicLayoutVertexArray);
-                continue;
-            }
             const tileAnchor = new Point(symbol.anchorX, symbol.anchorY);
             const projectedAnchor = symbolProjection.project(tileAnchor, labelPlaneMatrix);
             const perspectiveRatio = 0.5 + 0.5 * (transform.cameraToCenterDistance / projectedAnchor.signedDistanceFromCamera);

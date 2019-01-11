@@ -44,7 +44,7 @@ class PauseablePlacement {
                 showCollisionBoxes: boolean,
                 fadeDuration: number,
                 crossSourceCollisions: boolean,
-                prevPlacement: Placement) {
+                prevPlacement?: Placement) {
 
         this.placement = new Placement(transform, fadeDuration, crossSourceCollisions, prevPlacement);
         this._currentPlacementIndex = order.length - 1;

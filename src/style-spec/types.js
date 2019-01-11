@@ -237,6 +237,7 @@ export type SymbolLayerSpecification = {|
         "text-line-height"?: PropertyValueSpecification<number>,
         "text-letter-spacing"?: DataDrivenPropertyValueSpecification<number>,
         "text-justify"?: DataDrivenPropertyValueSpecification<"left" | "center" | "right">,
+        "dynamic-text-offset"?: DataDrivenPropertyValueSpecification<number>,
         "dynamic-text-anchor"?: PropertyValueSpecification<Array<"auto" | "center" | "left" | "right" | "top" | "bottom" | "top-left" | "top-right" | "bottom-left" | "bottom-right">>,
         "text-anchor"?: DataDrivenPropertyValueSpecification<"center" | "left" | "right" | "top" | "bottom" | "top-left" | "top-right" | "bottom-left" | "bottom-right">,
         "text-max-angle"?: PropertyValueSpecification<number>,

@@ -435,11 +435,11 @@ register('StructArrayLayout2ub2f12', StructArrayLayout2ub2f12);
  * [20]: Uint16[3]
  * [28]: Float32[2]
  * [36]: Uint8[2]
- * [40]: Float32[2]
+ * [40]: Uint32[1]
  *
  * @private
  */
-class StructArrayLayout2i2ui3ul3ui2f2ub2f48 extends StructArray {
+class StructArrayLayout2i2ui3ul3ui2f2ub1ul44 extends StructArray {
     uint8: Uint8Array;
     int16: Int16Array;
     uint16: Uint16Array;
@@ -454,16 +454,16 @@ class StructArrayLayout2i2ui3ul3ui2f2ub2f48 extends StructArray {
         this.float32 = new Float32Array(this.arrayBuffer);
     }
 
-    emplaceBack(v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number) {
+    emplaceBack(v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number) {
         const i = this.length;
         this.resize(i + 1);
-        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 
-    emplace(i: number, v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number) {
-        const o2 = i * 24;
-        const o4 = i * 12;
-        const o1 = i * 48;
+    emplace(i: number, v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number) {
+        const o2 = i * 22;
+        const o4 = i * 11;
+        const o1 = i * 44;
         this.int16[o2 + 0] = v0;
         this.int16[o2 + 1] = v1;
         this.uint16[o2 + 2] = v2;
@@ -478,14 +478,13 @@ class StructArrayLayout2i2ui3ul3ui2f2ub2f48 extends StructArray {
         this.float32[o4 + 8] = v11;
         this.uint8[o1 + 36] = v12;
         this.uint8[o1 + 37] = v13;
-        this.float32[o4 + 10] = v14;
-        this.float32[o4 + 11] = v15;
+        this.uint32[o4 + 10] = v14;
         return i;
     }
 }
 
-StructArrayLayout2i2ui3ul3ui2f2ub2f48.prototype.bytesPerElement = 48;
-register('StructArrayLayout2i2ui3ul3ui2f2ub2f48', StructArrayLayout2i2ui3ul3ui2f2ub2f48);
+StructArrayLayout2i2ui3ul3ui2f2ub1ul44.prototype.bytesPerElement = 44;
+register('StructArrayLayout2i2ui3ul3ui2f2ub1ul44', StructArrayLayout2i2ui3ul3ui2f2ub1ul44);
 
 
 /**
@@ -896,8 +895,7 @@ class PlacedSymbolStruct extends Struct {
     lineOffsetY: number;
     writingMode: number;
     hidden: number;
-    shiftX: number;
-    shiftY: number;
+    crossTileID: number;
     get anchorX() { return this._structArray.int16[this._pos2 + 0]; }
     set anchorX(x) { this._structArray.int16[this._pos2 + 0] = x; }
     get anchorY() { return this._structArray.int16[this._pos2 + 1]; }
@@ -926,13 +924,11 @@ class PlacedSymbolStruct extends Struct {
     set writingMode(x) { this._structArray.uint8[this._pos1 + 36] = x; }
     get hidden() { return this._structArray.uint8[this._pos1 + 37]; }
     set hidden(x) { this._structArray.uint8[this._pos1 + 37] = x; }
-    get shiftX() { return this._structArray.float32[this._pos4 + 10]; }
-    set shiftX(x) { this._structArray.float32[this._pos4 + 10] = x; }
-    get shiftY() { return this._structArray.float32[this._pos4 + 11]; }
-    set shiftY(x) { this._structArray.float32[this._pos4 + 11] = x; }
+    get crossTileID() { return this._structArray.uint32[this._pos4 + 10]; }
+    set crossTileID(x) { this._structArray.uint32[this._pos4 + 10] = x; }
 }
 
-PlacedSymbolStruct.prototype.size = 48;
+PlacedSymbolStruct.prototype.size = 44;
 
 export type PlacedSymbol = PlacedSymbolStruct;
 
@@ -940,7 +936,7 @@ export type PlacedSymbol = PlacedSymbolStruct;
 /**
  * @private
  */
-export class PlacedSymbolArray extends StructArrayLayout2i2ui3ul3ui2f2ub2f48 {
+export class PlacedSymbolArray extends StructArrayLayout2i2ui3ul3ui2f2ub1ul44 {
     /**
      * Return the PlacedSymbolStruct at the given location in the array.
      * @param {number} index The index of the element.
@@ -1151,7 +1147,7 @@ export {
     StructArrayLayout6i1ul2ui2i24,
     StructArrayLayout2i2i2i12,
     StructArrayLayout2ub2f12,
-    StructArrayLayout2i2ui3ul3ui2f2ub2f48,
+    StructArrayLayout2i2ui3ul3ui2f2ub1ul44,
     StructArrayLayout6i11ui1ul2f48,
     StructArrayLayout1f4,
     StructArrayLayout3i6,

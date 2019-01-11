@@ -552,8 +552,8 @@ class SymbolBucket implements Bucket {
             sizeVertex ? sizeVertex[0] : 0, sizeVertex ? sizeVertex[1] : 0,
             lineOffset[0], lineOffset[1],
             writingMode, (false: any),
-            // The shiftX and shiftY values are only used for layers that have `dynamic-text-anchor` enabled.
-            -Infinity, -Infinity);
+            // The crossTileID is only filled/used on the foreground for dynamic text anchors
+            0);
 
         arrays.programConfigurations.populatePaintArrays(arrays.layoutVertexArray.length, feature, feature.index, {});
     }
