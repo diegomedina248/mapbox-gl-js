@@ -269,9 +269,10 @@ export class Placement {
                 showCollisionBoxes, tile.holdingForFade(), seenCrossTileIDs, collisionBoxArray);
     }
 
-    attemptAnchorPlacement(anchor, dynamicAnchors, collisionArrays, textBox, dynamicTextOffset, textBoxScale, rotateWithMap,
-                           textPixelRatio, posMatrix, collisionGroup, justifications, textAllowOverlap, symbolInstance,
-                           bucket) {
+    attemptAnchorPlacement(anchor: any, dynamicAnchors: any, collisionArrays: any,
+                           textBox: any, dynamicTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
+                           textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
+                           textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
         // Skip center placement on auto mode if there is an icon for this feature
         if (collisionArrays.iconBox && dynamicAnchors[0] === "auto" && anchor === "center") {
             return;
@@ -284,7 +285,7 @@ export class Placement {
         const justifiedPlacedSymbol = justifications[justification];
         if (justifiedPlacedSymbol < 0) {
             return;
-        };
+        }
 
         const width = textBox.x2 - textBox.x1;
         const height = textBox.y2 - textBox.y1;
@@ -316,8 +317,7 @@ export class Placement {
                 return placedGlyphBoxes;
             }
         }
-        return;
-    };
+    }
 
     placeLayerBucket(bucket: SymbolBucket, posMatrix: mat4, textLabelPlaneMatrix: mat4, iconLabelPlaneMatrix: mat4,
             scale: number, textPixelRatio: number, showCollisionBoxes: boolean, holdingForFade: boolean, seenCrossTileIDs: { [string | number]: boolean },
