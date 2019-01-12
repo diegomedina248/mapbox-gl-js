@@ -269,6 +269,56 @@ export class Placement {
                 showCollisionBoxes, tile.holdingForFade(), seenCrossTileIDs, collisionBoxArray);
     }
 
+    attemptAnchorPlacement(anchor, dynamicAnchors, collisionArrays, textBox, dynamicTextOffset, textBoxScale, rotateWithMap,
+                           textPixelRatio, posMatrix, collisionGroup, justifications, textAllowOverlap, symbolInstance,
+                           bucket) {
+        // Skip center placement on auto mode if there is an icon for this feature
+        if (collisionArrays.iconBox && dynamicAnchors[0] === "auto" && anchor === "center") {
+            return;
+        }
+        if (anchor === "auto") {
+            warnOnce("Auto is not valid as any but the first element of the `dynamic-text-anchor` array.");
+            return;
+        }
+        const justification = getAnchorJustification(anchor);
+        const justifiedPlacedSymbol = justifications[justification];
+        if (justifiedPlacedSymbol < 0) {
+            return;
+        };
+
+        const width = textBox.x2 - textBox.x1;
+        const height = textBox.y2 - textBox.y1;
+        const shift = calculateDynamicLayoutOffset(anchor, width, height, dynamicTextOffset, textBoxScale);
+
+        if (collisionArrays.textBox) {
+            const placedGlyphBoxes = this.collisionIndex.placeCollisionBox(
+                shiftDynamicCollisionBox(
+                    collisionArrays.textBox, shift.x, shift.y,
+                    rotateWithMap ? this.transform.angle : 0),
+                textAllowOverlap, textPixelRatio, posMatrix, collisionGroup.predicate);
+
+            if (placedGlyphBoxes.box.length > 0) {
+                let prevAnchor;
+                if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
+                    const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
+                    prevAnchor = prevOffsets.anchor;
+                }
+                assert(symbolInstance.crossTileID !== 0);
+                this.dynamicOffsets[symbolInstance.crossTileID] = {
+                    radialOffset: dynamicTextOffset,
+                    width,
+                    height,
+                    anchor,
+                    textBoxScale,
+                    prevAnchor
+                };
+                this.hideUnplacedJustifications(bucket, justification, symbolInstance);
+                return placedGlyphBoxes;
+            }
+        }
+        return;
+    };
+
     placeLayerBucket(bucket: SymbolBucket, posMatrix: mat4, textLabelPlaneMatrix: mat4, iconLabelPlaneMatrix: mat4,
             scale: number, textPixelRatio: number, showCollisionBoxes: boolean, holdingForFade: boolean, seenCrossTileIDs: { [string | number]: boolean },
             collisionBoxArray: ?CollisionBoxArray) {
@@ -320,7 +370,6 @@ export class Placement {
                 let placedGlyphBoxes = null;
                 let placedGlyphCircles = null;
                 let placedIconBoxes = null;
-                let shiftedCollisionBox = null;
                 let textFeatureIndex = 0;
                 let iconFeatureIndex = 0;
 
@@ -352,54 +401,24 @@ export class Placement {
                     const textBox = collisionArrays.textBox;
                     const textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize);
                     const dynamicAnchors = layout.get('dynamic-text-anchor');
-                    const anchors = dynamicAnchors[0] === "auto" ? AUTO_DYNAMIC_PLACEMENT.slice() : dynamicAnchors.slice();
+                    let anchors = dynamicAnchors[0] === "auto" ? AUTO_DYNAMIC_PLACEMENT : dynamicAnchors;
                     if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
                         const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
-                        anchors.unshift(prevOffsets.anchor);
+                        if (anchors[0] !== prevOffsets.anchor) {
+                            // Shift previously used anchor to front of list
+                            anchors = anchors.filter(anchor => anchor !== prevOffsets.anchor);
+                            anchors.unshift(prevOffsets.anchor);
+                        }
                     }
+
                     for (const anchor of anchors) {
-                        // Skip center placement on auto mode if there is an icon for this feature
-                        if (collisionArrays.iconBox && dynamicAnchors[0] === "auto" && anchor === "center") {
-                            continue;
-                        }
-                        if (anchor === "auto") {
-                            warnOnce("Auto is not valid as any but the first element of the `dynamic-text-anchor` array.");
-                            continue;
-                        }
-                        const justification = getAnchorJustification(anchor);
-                        const justifiedPlacedSymbol = justifications[justification];
-                        if (justifiedPlacedSymbol < 0) continue;
-
-                        const width = textBox.x2 - textBox.x1;
-                        const height = textBox.y2 - textBox.y1;
-                        const shift = calculateDynamicLayoutOffset(anchor, width, height, dynamicTextOffset, textBoxScale);
-
-                        if (collisionArrays.textBox) {
-                            shiftedCollisionBox = shiftDynamicCollisionBox(
-                                collisionArrays.textBox, shift.x, shift.y,
-                                rotateWithMap ? this.transform.angle : 0);
-                            placedGlyphBoxes = this.collisionIndex.placeCollisionBox(shiftedCollisionBox,
-                                    layout.get('text-allow-overlap'), textPixelRatio, posMatrix, collisionGroup.predicate);
-                            placeText = placedGlyphBoxes.box.length > 0;
-
-                            if (placeText) {
-                                let prevAnchor;
-                                if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
-                                    const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
-                                    prevAnchor = prevOffsets.anchor;
-                                }
-                                assert(symbolInstance.crossTileID !== 0);
-                                this.dynamicOffsets[symbolInstance.crossTileID] = {
-                                    radialOffset: dynamicTextOffset,
-                                    width,
-                                    height,
-                                    anchor,
-                                    textBoxScale,
-                                    prevAnchor
-                                };
-                                this.hideUnplacedJustifications(bucket, justification, symbolInstance);
-                                break;
-                            }
+                        placedGlyphBoxes = this.attemptAnchorPlacement(
+                            anchor, dynamicAnchors, collisionArrays, textBox, dynamicTextOffset,
+                            textBoxScale, rotateWithMap, textPixelRatio, posMatrix, collisionGroup, justifications,
+                            textAllowOverlap, symbolInstance, bucket);
+                        if (placedGlyphBoxes) {
+                            placeText = true;
+                            break;
                         }
                     }
                     if (!this.dynamicOffsets[symbolInstance.crossTileID] && this.prevPlacement) {
