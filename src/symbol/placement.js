@@ -703,7 +703,7 @@ export class Placement {
                             shift = calculateDynamicLayoutOffset(dynamicOffset.anchor,
                                dynamicOffset.width,
                                dynamicOffset.height,
-                               dynamicOffset.dynamicTextOffset,
+                               dynamicOffset.radialOffset,
                                dynamicOffset.textBoxScale);
                         }
 
