@@ -96,7 +96,8 @@ function calculateDynamicRenderOffset(anchor, width, height, radialOffset, textB
     );
 }
 
-function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOffsets, symbolSize, transform, labelPlaneMatrix, size) {
+function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOffsets, symbolSize,
+                              transform, labelPlaneMatrix, posMatrix, tileScale, size) {
     const placedSymbols = bucket.text.placedSymbolArray;
     const dynamicLayoutVertexArray = bucket.text.dynamicLayoutVertexArray;
     dynamicLayoutVertexArray.clear();
@@ -109,9 +110,12 @@ function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOff
             symbolProjection.hideGlyphs(symbol.numGlyphs, dynamicLayoutVertexArray);
         } else  {
             const tileAnchor = new Point(symbol.anchorX, symbol.anchorY);
-            const projectedAnchor = symbolProjection.project(tileAnchor, labelPlaneMatrix);
+            const projectedAnchor = symbolProjection.project(tileAnchor, pitchWithMap ? posMatrix : labelPlaneMatrix);
             const perspectiveRatio = 0.5 + 0.5 * (transform.cameraToCenterDistance / projectedAnchor.signedDistanceFromCamera);
-            const renderTextSize = symbolSize.evaluateSizeForFeature(bucket.textSizeData, size, symbol) / ONE_EM;
+            let renderTextSize = symbolSize.evaluateSizeForFeature(bucket.textSizeData, size, symbol) / ONE_EM;
+            if (pitchWithMap) {
+                renderTextSize *= bucket.tilePixelRatio / tileScale;
+            }
 
             const shift = calculateDynamicRenderOffset(
                 dynamicOffset.anchor,
@@ -222,7 +226,8 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
         if (alongLine) {
             symbolProjection.updateLineLabels(bucket, coord.posMatrix, painter, isText, labelPlaneMatrix, glCoordMatrix, pitchWithMap, keepUpright);
         } else if (isText && size && dynamicPlacement) {
-            updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOffsets, symbolSize, tr, labelPlaneMatrix, size);
+            const tileScale = Math.pow(2, tr.zoom - tile.tileID.overscaledZ);
+            updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOffsets, symbolSize, tr, labelPlaneMatrix, coord.posMatrix, tileScale, size);
         }
 
         const matrix = painter.translatePosMatrix(coord.posMatrix, tile, translate, translateAnchor),

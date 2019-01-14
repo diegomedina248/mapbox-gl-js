@@ -77,9 +77,13 @@ function calculateDynamicLayoutOffset(anchor, width, height, radialOffset, textB
 
 function shiftDynamicCollisionBox(collisionBox: SingleCollisionBox,
                                   shiftX: number, shiftY: number,
+                                  rotateWithMap: boolean, pitchWithMap: boolean,
                                   angle: number) {
     const {x1, x2, y1, y2, anchorPointX, anchorPointY} = collisionBox;
-    const rotatedOffset = new Point(shiftX, shiftY).rotate(angle);
+    const rotatedOffset = new Point(shiftX, shiftY);
+    if (rotateWithMap) {
+        rotatedOffset._rotate(pitchWithMap ? angle : -angle);
+    }
     return {
         x1: x1 + rotatedOffset.x,
         y1: y1 + rotatedOffset.y,
@@ -271,7 +275,7 @@ export class Placement {
 
     attemptAnchorPlacement(anchor: any, dynamicAnchors: any, collisionArrays: any,
                            textBox: any, dynamicTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
-                           textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
+                           pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
                            textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
         // Skip center placement on auto mode if there is an icon for this feature
         if (collisionArrays.iconBox && dynamicAnchors[0] === "auto" && anchor === "center") {
@@ -295,7 +299,7 @@ export class Placement {
             const placedGlyphBoxes = this.collisionIndex.placeCollisionBox(
                 shiftDynamicCollisionBox(
                     collisionArrays.textBox, shift.x, shift.y,
-                    rotateWithMap ? this.transform.angle : 0),
+                    rotateWithMap, pitchWithMap, this.transform.angle),
                 textAllowOverlap, textPixelRatio, posMatrix, collisionGroup.predicate);
 
             if (placedGlyphBoxes.box.length > 0) {
@@ -348,6 +352,7 @@ export class Placement {
         const collisionGroup = this.collisionGroups.get(bucket.sourceID);
 
         const rotateWithMap = layout.get('text-rotation-alignment') === 'map';
+        const pitchWithMap = layout.get('text-pitch-alignment') === 'map';
 
         if (!bucket.collisionArrays && collisionBoxArray) {
             bucket.deserializeCollisionBoxes(collisionBoxArray);
@@ -414,8 +419,8 @@ export class Placement {
                     for (const anchor of anchors) {
                         placedGlyphBoxes = this.attemptAnchorPlacement(
                             anchor, dynamicAnchors, collisionArrays, textBox, dynamicTextOffset,
-                            textBoxScale, rotateWithMap, textPixelRatio, posMatrix, collisionGroup, justifications,
-                            textAllowOverlap, symbolInstance, bucket);
+                            textBoxScale, rotateWithMap, pitchWithMap, textPixelRatio, posMatrix, collisionGroup,
+                            justifications, textAllowOverlap, symbolInstance, bucket);
                         if (placedGlyphBoxes) {
                             placeText = true;
                             break;
@@ -450,7 +455,7 @@ export class Placement {
                             posMatrix,
                             textLabelPlaneMatrix,
                             showCollisionBoxes,
-                            layout.get('text-pitch-alignment') === 'map',
+                            pitchWithMap,
                             collisionGroup.predicate);
                     // If text-allow-overlap is set, force "placedCircles" to true
                     // In theory there should always be at least one circle placed
@@ -611,6 +616,8 @@ export class Placement {
         const textAllowOverlap = layout.get('text-allow-overlap');
         const iconAllowOverlap = layout.get('icon-allow-overlap');
         const dynamicPlacement = layout.get('dynamic-text-anchor');
+        const rotateWithMap = layout.get('text-rotation-alignment') === 'map';
+        const pitchWithMap = layout.get('text-pitch-alignment') === 'map';
         // If allow-overlap is true, we can show symbols before placement runs on them
         // But we have to wait for placement if we potentially depend on a paired icon/text
         // with allow-overlap: false.
@@ -705,6 +712,9 @@ export class Placement {
                                dynamicOffset.height,
                                dynamicOffset.radialOffset,
                                dynamicOffset.textBoxScale);
+                            if (rotateWithMap) {
+                                shift._rotate(pitchWithMap ? this.transform.angle : -this.transform.angle);
+                            }
                         }
 
                         updateCollisionVertices(bucket.collisionBox.collisionVertexArray, opacityState.text.placed, false, shift.x, shift.y);
