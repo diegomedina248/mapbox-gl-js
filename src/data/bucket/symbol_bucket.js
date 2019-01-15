@@ -757,11 +757,11 @@ class SymbolBucket implements Bucket {
                 usedHorizontalIndex = rightJustifiedTextSymbolIndex;
                 this.addIndicesForPlacedTextSymbol(rightJustifiedTextSymbolIndex);
             }
-            if (centerJustifiedTextSymbolIndex >= 0 && centerJustifiedTextSymbolIndex !== usedIndex) {
+            if (centerJustifiedTextSymbolIndex >= 0 && centerJustifiedTextSymbolIndex !== usedHorizontalIndex) {
                 usedHorizontalIndex = centerJustifiedTextSymbolIndex;
                 this.addIndicesForPlacedTextSymbol(centerJustifiedTextSymbolIndex);
             }
-            if (leftJustifiedTextSymbolIndex >= 0 && leftJustifiedTextSymbolIndex !== usedIndex) {
+            if (leftJustifiedTextSymbolIndex >= 0 && leftJustifiedTextSymbolIndex !== usedHorizontalIndex) {
                 this.addIndicesForPlacedTextSymbol(leftJustifiedTextSymbolIndex);
             }
             if (verticalPlacedTextSymbolIndex >= 0) {

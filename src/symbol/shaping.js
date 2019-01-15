@@ -197,14 +197,14 @@ function shapeText(text: Formatted,
         bottom: translate[1],
         left: translate[0],
         right: translate[0],
-        writingMode
+        writingMode,
+        lineCount: lines.length
     };
 
     shapeLines(shaping, glyphs, lines, lineHeight, textAnchor, textJustify, writingMode, spacing, verticalHeight);
     if (!positionedGlyphs.length) return false;
 
     shaping.text = shaping.text.toString();
-    shaping.lineCount = lines.length;
     return shaping;
 }
 
