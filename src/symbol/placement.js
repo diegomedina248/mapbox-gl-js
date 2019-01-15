@@ -115,19 +115,6 @@ export class RetainedQueryData {
     }
 }
 
-
-export const AUTO_DYNAMIC_PLACEMENT = [
-    "center",
-    "top",
-    "bottom",
-    "left",
-    "right",
-    "top-left",
-    "top-right",
-    "bottom-left",
-    "bottom-right"
-];
-
 class CollisionGroups {
     collisionGroups: { [groupName: string]: { ID: number, predicate?: any }};
     maxGroupID: number;
@@ -277,14 +264,6 @@ export class Placement {
                            textBox: any, dynamicTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
                            pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
                            textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
-        // Skip center placement on auto mode if there is an icon for this feature
-        if (collisionArrays.iconBox && dynamicAnchors[0] === "auto" && anchor === "center") {
-            return;
-        }
-        if (anchor === "auto") {
-            warnOnce("Auto is not valid as any but the first element of the `dynamic-text-anchor` array.");
-            return;
-        }
         const justification = getAnchorJustification(anchor);
         const justifiedPlacedSymbol = justifications[justification];
         if (justifiedPlacedSymbol < 0) {
@@ -409,8 +388,7 @@ export class Placement {
                 } else if (collisionArrays.textBox) {
                     const textBox = collisionArrays.textBox;
                     const textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize);
-                    const dynamicAnchors = layout.get('dynamic-text-anchor');
-                    let anchors = dynamicAnchors[0] === "auto" ? AUTO_DYNAMIC_PLACEMENT : dynamicAnchors;
+                    let dynamicAnchors = layout.get('dynamic-text-anchor');
                     if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
                         const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
                         if (anchors[0] !== prevOffsets.anchor) {

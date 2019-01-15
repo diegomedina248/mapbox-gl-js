@@ -19,7 +19,6 @@ import SymbolBucket from '../data/bucket/symbol_bucket';
 import EvaluationParameters from '../style/evaluation_parameters';
 import {SIZE_PACK_FACTOR} from './symbol_size';
 import ONE_EM from './one_em';
-import {AUTO_DYNAMIC_PLACEMENT} from './placement';
 
 import type {Shaping, PositionedIcon, TextJustify} from './shaping';
 import type {CollisionBoxArray} from '../data/array_types';
@@ -116,9 +115,6 @@ export function performSymbolLayout(bucket: SymbolBucket,
             const textAnchor = layout.get('text-anchor').evaluate(feature, {});
             // Dynamic placement doesn't apply to line-placed labels
             let dynamicTextAnchor = layout.get('dynamic-text-anchor');
-            if (dynamicTextAnchor && dynamicTextAnchor[0] === "auto") {
-                dynamicTextAnchor = AUTO_DYNAMIC_PLACEMENT;
-            }
             // Dynamically placed layers use the `dynamic-text-offset` property and the [x, y] offset vector
             // is calculated at placement time based on the placed `text-anchor`.
             const textOffset: [number, number] = ((dynamicTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);

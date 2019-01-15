@@ -1806,9 +1806,6 @@
       "type": "array",
       "value": "enum",
       "values": {
-        "auto": {
-          "doc": "If `auto` is the first element in the `dynamic-text-anchor` array, the placement will be attempted in the following order: center, top, bottom, left, right, top-left, top-right, bottom-left, bottom-right."
-        },
         "center": {
           "doc": "The center of the text is placed closest to the anchor."
         },
@@ -1853,7 +1850,7 @@
             ]
         }
       ],
-      "doc": "To increase label density, you can provide an array of `text-anchor` locations to try placing a label. The order of the anchors in the array is the order in which placement will be attempted. `text-justification` will be chosen automatically based on the placed anchor. `auto` can be used if you do not want to specify which text-anchors to attempt. To offset a dynamically placed label, use `dynamic-text-offset` instead of `text-offset`.",
+      "doc": "To increase the chance of placing high-priority labels on the map, you can provide an array of `text-anchor` locations to try placing a label. The order of the anchors in the array is the order in which placement will be attempted. `text-justification` will be chosen automatically based on the placed anchor. To offset a dynamically placed label, use `dynamic-text-offset` instead of `text-offset`.",
       "sdk-support": {
         "basic functionality": {
           "js": "next",
