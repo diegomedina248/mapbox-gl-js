@@ -90,6 +90,7 @@
       "layout": {
         "text-field": "x",
         "text-size": 20,
+        "text-justify": "auto",
         "variable-text-anchor": [
             "center",
             "top",

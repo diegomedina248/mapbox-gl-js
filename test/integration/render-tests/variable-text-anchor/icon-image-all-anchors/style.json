@@ -55,6 +55,7 @@
           "Open Sans Semibold",
           "Arial Unicode MS Bold"
         ],
+        "text-justify": "auto",
         "variable-text-anchor" : [
             "top",
             "bottom",

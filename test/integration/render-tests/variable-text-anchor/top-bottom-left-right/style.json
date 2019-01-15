@@ -48,6 +48,7 @@
         ],
         "text-field": ["get", "name"],
         "text-size": 12,
+        "text-justify": "auto",
         "variable-text-anchor": ["top", "bottom", "left", "right" ]
       }
     },

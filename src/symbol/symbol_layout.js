@@ -55,7 +55,7 @@ type Sizes = {
     compositeIconSizes: [PossiblyEvaluatedPropertyValue<number>, PossiblyEvaluatedPropertyValue<number>], // (5)
 };
 
-export type VariableTextAnchor = 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type TextAnchor = 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export function performSymbolLayout(bucket: SymbolBucket,
                              glyphMap: {[string]: {[number]: ?StyleGlyph}},
@@ -118,8 +118,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
             // Layers with multiple anchors use the `variable-text-offset` property and the [x, y] offset vector
             // is calculated at placement time based on the placed `text-anchor`.
             const textOffset: [number, number] = ((variableTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);
-            const textJustify = layout.get('text-justify').evaluate(feature, {});
-            const justifications =  variableTextAnchor ? variableTextAnchor.map(a => getAnchorJustification(a)) : [];
+            let textJustify = layout.get('text-justify').evaluate(feature, {});
 
             const maxWidth =  symbolPlacement === 'point' ?
                 layout.get('text-max-width').evaluate(feature, {}) * ONE_EM :
@@ -127,6 +126,10 @@ export function performSymbolLayout(bucket: SymbolBucket,
 
             // If this layer uses variable-text-anchor, generate shapings for all justification possibilities.
             if (!textAlongLine && variableTextAnchor) {
+                const justifications = textJustify === "auto" ?
+                    variableTextAnchor.map(a => getAnchorJustification(a)) :
+                    [textJustify];
+
                 let singleLine = false;
                 for (let i = 0; i < justifications.length; i++) {
                     const justification: TextJustify = justifications[i];
@@ -146,6 +149,9 @@ export function performSymbolLayout(bucket: SymbolBucket,
                     }
                 }
             } else {
+                if (textJustify === "auto") {
+                    textJustify = getAnchorAlignment(textAnchor);
+                }
                 const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
                 if (shaping) shapedTextOrientations.horizontal[textJustify] = shaping;
 
@@ -194,7 +200,7 @@ export function getTextboxScale(tilePixelRatio: number, layoutTextSize: number) 
 }
 
 // for variable placement, we choose the appropriate justification based on the current anchor
-export function getAnchorJustification(anchor: VariableTextAnchor): TextJustify  {
+export function getAnchorJustification(anchor: TextAnchor): TextJustify  {
     // top and bottom anchors will be replaced by an empty string, but both of those
     // anchors are center justified.
     switch (anchor) {
