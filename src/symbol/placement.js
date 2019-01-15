@@ -64,18 +64,18 @@ class JointPlacement {
     }
 }
 
-function calculateDynamicLayoutOffset(anchor, width, height, radialOffset, textBoxScale): Point {
+function calculateVariableLayoutOffset(anchor, width, height, radialOffset, textBoxScale): Point {
     const {horizontalAlign, verticalAlign} = getAnchorAlignment(anchor);
     const shiftX = -(horizontalAlign - 0.5) * width;
     const shiftY = -(verticalAlign - 0.5) * height;
-    const offset = radialOffset ? getDynamicOffset(anchor, radialOffset) : [0, 0];
+    const offset = getVariableOffset(anchor, radialOffset);
     return new Point(
         shiftX + offset[0] * textBoxScale,
         shiftY + offset[1] * textBoxScale
     );
 }
 
-function shiftDynamicCollisionBox(collisionBox: SingleCollisionBox,
+function shiftVariableCollisionBox(collisionBox: SingleCollisionBox,
                                   shiftX: number, shiftY: number,
                                   rotateWithMap: boolean, pitchWithMap: boolean,
                                   angle: number) {
@@ -147,7 +147,7 @@ class CollisionGroups {
     }
 }
 
-export function getDynamicOffset(anchor: string, radialOffset: number) {
+export function getVariableOffset(anchor: string, radialOffset: number) {
     let x = 0, y = 0;
     // solve for r where r^2 + r^2 = radialOffset^2
     const hypotenuse = radialOffset / Math.sqrt(2);
@@ -194,7 +194,7 @@ export class Placement {
     collisionIndex: CollisionIndex;
     placements: { [string | number]: JointPlacement };
     opacities: { [string | number]: JointOpacityState };
-    dynamicOffsets: {[string | number]: any };
+    variableOffsets: {[string | number]: any };
     commitTime: number;
     lastPlacementChangeTime: number;
     stale: boolean;
@@ -208,7 +208,7 @@ export class Placement {
         this.collisionIndex = new CollisionIndex(this.transform);
         this.placements = {};
         this.opacities = {};
-        this.dynamicOffsets = {};
+        this.variableOffsets = {};
         this.stale = false;
         this.commitTime = 0;
         this.fadeDuration = fadeDuration;
@@ -261,7 +261,7 @@ export class Placement {
     }
 
     attemptAnchorPlacement(anchor: any, collisionArrays: any,
-                           textBox: any, dynamicTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
+                           textBox: any, variableTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
                            pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
                            textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
         const justification = getAnchorJustification(anchor);
@@ -272,11 +272,11 @@ export class Placement {
 
         const width = textBox.x2 - textBox.x1;
         const height = textBox.y2 - textBox.y1;
-        const shift = calculateDynamicLayoutOffset(anchor, width, height, dynamicTextOffset, textBoxScale);
+        const shift = calculateVariableLayoutOffset(anchor, width, height, variableTextOffset, textBoxScale);
 
         if (collisionArrays.textBox) {
             const placedGlyphBoxes = this.collisionIndex.placeCollisionBox(
-                shiftDynamicCollisionBox(
+                shiftVariableCollisionBox(
                     collisionArrays.textBox, shift.x, shift.y,
                     rotateWithMap, pitchWithMap, this.transform.angle),
                 textAllowOverlap, textPixelRatio, posMatrix, collisionGroup.predicate);
@@ -286,14 +286,14 @@ export class Placement {
                 // If this label was placed in the previous placement, record the anchor position
                 // to allow us to animate the transition
                 if (this.prevPlacement &&
-                    this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID] &&
+                    this.prevPlacement.variableOffsets[symbolInstance.crossTileID] &&
                     this.prevPlacement.placements[symbolInstance.crossTileID] &&
                     this.prevPlacement.placements[symbolInstance.crossTileID].text) {
-                    prevAnchor = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID].anchor;
+                    prevAnchor = this.prevPlacement.variableOffsets[symbolInstance.crossTileID].anchor;
                 }
                 assert(symbolInstance.crossTileID !== 0);
-                this.dynamicOffsets[symbolInstance.crossTileID] = {
-                    radialOffset: dynamicTextOffset,
+                this.variableOffsets[symbolInstance.crossTileID] = {
+                    radialOffset: variableTextOffset,
                     width,
                     height,
                     anchor,
@@ -372,7 +372,7 @@ export class Placement {
                     leftJustifiedTextSymbolIndex,
                     centerJustifiedTextSymbolIndex,
                     layoutTextSize,
-                    dynamicTextOffset
+                    variableTextOffset
                 } = symbolInstance;
                 // justify right = 1, left = 0, center = 0.5
                 const justifications = {
@@ -381,16 +381,16 @@ export class Placement {
                     "right": rightJustifiedTextSymbolIndex
                 };
 
-                if (collisionArrays.textBox && !layout.get('dynamic-text-anchor')) {
+                if (collisionArrays.textBox && !layout.get('variable-text-anchor')) {
                     placedGlyphBoxes = this.collisionIndex.placeCollisionBox(collisionArrays.textBox,
                             layout.get('text-allow-overlap'), textPixelRatio, posMatrix, collisionGroup.predicate);
                     placeText = placedGlyphBoxes.box.length > 0;
                 } else if (collisionArrays.textBox) {
                     const textBox = collisionArrays.textBox;
                     const textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize);
-                    let anchors = layout.get('dynamic-text-anchor');
-                    if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
-                        const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
+                    let anchors = layout.get('variable-text-anchor');
+                    if (this.prevPlacement && this.prevPlacement.variableOffsets[symbolInstance.crossTileID]) {
+                        const prevOffsets = this.prevPlacement.variableOffsets[symbolInstance.crossTileID];
                         if (anchors[0] !== prevOffsets.anchor) {
                             // Shift previously used anchor to front of list
                             anchors = anchors.filter(anchor => anchor !== prevOffsets.anchor);
@@ -400,7 +400,7 @@ export class Placement {
 
                     for (const anchor of anchors) {
                         placedGlyphBoxes = this.attemptAnchorPlacement(
-                            anchor, collisionArrays, textBox, dynamicTextOffset,
+                            anchor, collisionArrays, textBox, variableTextOffset,
                             textBoxScale, rotateWithMap, pitchWithMap, textPixelRatio, posMatrix, collisionGroup,
                             justifications, textAllowOverlap, symbolInstance, bucket);
                         if (placedGlyphBoxes) {
@@ -408,12 +408,12 @@ export class Placement {
                             break;
                         }
                     }
-                    if (!this.dynamicOffsets[symbolInstance.crossTileID] && this.prevPlacement) {
+                    if (!this.variableOffsets[symbolInstance.crossTileID] && this.prevPlacement) {
                         // If we didn't get placed, we still need to copy our position from the last placement for
                         // fade animations
-                        const prevOffset = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
+                        const prevOffset = this.prevPlacement.variableOffsets[symbolInstance.crossTileID];
                         if (prevOffset) {
-                            this.dynamicOffsets[symbolInstance.crossTileID] = prevOffset;
+                            this.variableOffsets[symbolInstance.crossTileID] = prevOffset;
                             this.hideUnplacedJustifications(bucket,
                                 getAnchorJustification(prevOffset.anchor), symbolInstance);
                         }
@@ -522,7 +522,7 @@ export class Placement {
             1;
 
         const prevOpacities = prevPlacement ? prevPlacement.opacities : {};
-        const prevOffsets = prevPlacement ? prevPlacement.dynamicOffsets : {};
+        const prevOffsets = prevPlacement ? prevPlacement.variableOffsets : {};
         // add the opacities from the current placement, and copy their current values from the previous placement
         for (const crossTileID in this.placements) {
             const jointPlacement = this.placements[crossTileID];
@@ -550,8 +550,8 @@ export class Placement {
             }
         }
         for (const crossTileID in prevOffsets) {
-            if (!this.dynamicOffsets[crossTileID] && this.opacities[crossTileID] && !this.opacities[crossTileID].isHidden()) {
-                this.dynamicOffsets[crossTileID] = prevOffsets[crossTileID];
+            if (!this.variableOffsets[crossTileID] && this.opacities[crossTileID] && !this.opacities[crossTileID].isHidden()) {
+                this.variableOffsets[crossTileID] = prevOffsets[crossTileID];
             }
         }
 
@@ -592,7 +592,7 @@ export class Placement {
         const duplicateOpacityState = new JointOpacityState(null, 0, false, false, true);
         const textAllowOverlap = layout.get('text-allow-overlap');
         const iconAllowOverlap = layout.get('icon-allow-overlap');
-        const dynamicPlacement = layout.get('dynamic-text-anchor');
+        const variablePlacement = layout.get('variable-text-anchor');
         const rotateWithMap = layout.get('text-rotation-alignment') === 'map';
         const pitchWithMap = layout.get('text-pitch-alignment') === 'map';
         // If allow-overlap is true, we can show symbols before placement runs on them
@@ -648,7 +648,7 @@ export class Placement {
                     bucket.text.opacityVertexArray.emplaceBack(packedOpacity);
                 }
                 // If this label is completely faded, mark it so that we don't have to calculate
-                // its position at render time. If this layer has dynamic placement, shift the various
+                // its position at render time. If this layer has variable placement, shift the various
                 // symbol instances appropriately so that symbols from buckets that have yet to be placed
                 // offset appropriately.
                 const hide = opacityState.text.isHidden();
@@ -656,7 +656,7 @@ export class Placement {
                 this.hidePlacedSymbols(bucket, centerJustifiedTextSymbolIndex, hide);
                 this.hidePlacedSymbols(bucket, leftJustifiedTextSymbolIndex, hide);
                 this.hidePlacedSymbols(bucket, rightJustifiedTextSymbolIndex, hide);
-                const prevOffset = this.dynamicOffsets[symbolInstance.crossTileID];
+                const prevOffset = this.variableOffsets[symbolInstance.crossTileID];
                 if (prevOffset) {
                     this.hideUnplacedJustifications(bucket, getAnchorJustification(prevOffset.anchor), symbolInstance);
                 }
@@ -677,13 +677,13 @@ export class Placement {
                 if (collisionArrays) {
                     if (collisionArrays.textBox) {
                         let shift = new Point(0, 0);
-                        if (dynamicPlacement && opacityState.text.placed) {
-                            const dynamicOffset = this.dynamicOffsets[crossTileID];
-                            shift = calculateDynamicLayoutOffset(dynamicOffset.anchor,
-                               dynamicOffset.width,
-                               dynamicOffset.height,
-                               dynamicOffset.radialOffset,
-                               dynamicOffset.textBoxScale);
+                        if (variablePlacement && opacityState.text.placed) {
+                            const variableOffset = this.variableOffsets[crossTileID];
+                            shift = calculateVariableLayoutOffset(variableOffset.anchor,
+                               variableOffset.width,
+                               variableOffset.height,
+                               variableOffset.radialOffset,
+                               variableOffset.textBoxScale);
                             if (rotateWithMap) {
                                 shift._rotate(pitchWithMap ? this.transform.angle : -this.transform.angle);
                             }

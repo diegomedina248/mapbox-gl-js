@@ -55,7 +55,7 @@ type Sizes = {
     compositeIconSizes: [PossiblyEvaluatedPropertyValue<number>, PossiblyEvaluatedPropertyValue<number>], // (5)
 };
 
-export type DynamicTextAnchor = 'auto' | 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type VariableTextAnchor = 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 export function performSymbolLayout(bucket: SymbolBucket,
                              glyphMap: {[string]: {[number]: ?StyleGlyph}},
@@ -113,20 +113,20 @@ export function performSymbolLayout(bucket: SymbolBucket,
             const spacingIfAllowed = allowsLetterSpacing(unformattedText) ? spacing : 0;
             const symbolPlacement = layout.get('symbol-placement');
             const textAnchor = layout.get('text-anchor').evaluate(feature, {});
-            // Dynamic placement doesn't apply to line-placed labels
-            let dynamicTextAnchor = layout.get('dynamic-text-anchor');
-            // Dynamically placed layers use the `dynamic-text-offset` property and the [x, y] offset vector
+            // variable placement doesn't apply to line-placed labels
+            let variableTextAnchor = layout.get('variable-text-anchor');
+            // Layers with multiple anchors use the `variable-text-offset` property and the [x, y] offset vector
             // is calculated at placement time based on the placed `text-anchor`.
-            const textOffset: [number, number] = ((dynamicTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);
+            const textOffset: [number, number] = ((variableTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);
             const textJustify = layout.get('text-justify').evaluate(feature, {});
-            const justifications =  dynamicTextAnchor ? dynamicTextAnchor.map(a => getAnchorJustification(a)) : [];
+            const justifications =  variableTextAnchor ? variableTextAnchor.map(a => getAnchorJustification(a)) : [];
 
             const maxWidth =  symbolPlacement === 'point' ?
                 layout.get('text-max-width').evaluate(feature, {}) * ONE_EM :
                 0;
 
-            // If this layer uses dynamic-text-anchor, generate shapings for all justification possibilities.
-            if (!textAlongLine && dynamicTextAnchor) {
+            // If this layer uses variable-text-anchor, generate shapings for all justification possibilities.
+            if (!textAlongLine && variableTextAnchor) {
                 let singleLine = false;
                 for (let i = 0; i < justifications.length; i++) {
                     const justification: TextJustify = justifications[i];
@@ -136,7 +136,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
                         // can re-use it for the other justifications
                         shapedTextOrientations.horizontal[justification] = shapedTextOrientations.horizontal[0];
                     } else {
-                        // If using dynamic-text-anchor for the layer, we use a center anchor for all shapings and apply
+                        // If using variable-text-anchor for the layer, we use a center anchor for all shapings and apply
                         // the offsets for the anchor in the placement step.
                         const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, 'center', justification, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
                         if (shaping) {
@@ -193,8 +193,8 @@ export function getTextboxScale(tilePixelRatio: number, layoutTextSize: number) 
     return tilePixelRatio * fontScale;
 }
 
-// for dynamic placement, we choose the appropriate justification based on the current anchor
-export function getAnchorJustification(anchor: DynamicTextAnchor): TextJustify  {
+// for variable placement, we choose the appropriate justification based on the current anchor
+export function getAnchorJustification(anchor: VariableTextAnchor): TextJustify  {
     // top and bottom anchors will be replaced by an empty string, but both of those
     // anchors are center justified.
     switch (anchor) {
@@ -236,7 +236,7 @@ function addFeature(bucket: SymbolBucket,
     }
 
     const layout = bucket.layers[0].layout;
-    const textOffset = layout.get('dynamic-text-anchor') ? [0, 0] : layout.get('text-offset').evaluate(feature, {});
+    const textOffset = layout.get('variable-text-anchor') ? [0, 0] : layout.get('text-offset').evaluate(feature, {});
     const iconOffset = layout.get('icon-offset').evaluate(feature, {});
     const justifications = Object.keys(shapedTextOrientations.horizontal);
     const defaultHorizontalShaping = justifications.length ? shapedTextOrientations.horizontal[justifications[0]] : null;
@@ -421,7 +421,7 @@ function addSymbol(bucket: SymbolBucket,
     let numVerticalGlyphVertices = 0;
     const placedTextSymbolIndices = {};
     let key = murmur3('');
-    const dynamicTextOffset = layer.layout.get('dynamic-text-offset').evaluate(feature, {}) * ONE_EM;
+    const variableTextOffset = (layer.layout.get('variable-text-offset').evaluate(feature, {}) || 0) * ONE_EM;
 
     for (const justification: any in shapedTextOrientations.horizontal) {
         const shaping = shapedTextOrientations.horizontal[justification];
@@ -524,7 +524,7 @@ function addSymbol(bucket: SymbolBucket,
         numIconVertices,
         0,
         layoutTextSize,
-        dynamicTextOffset);
+        variableTextOffset);
 }
 
 function anchorIsTooClose(bucket: any, text: string, repeatDistance: number, anchor: Point) {

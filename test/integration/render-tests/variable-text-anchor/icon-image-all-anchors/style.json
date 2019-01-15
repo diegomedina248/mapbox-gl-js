@@ -55,7 +55,7 @@
           "Open Sans Semibold",
           "Arial Unicode MS Bold"
         ],
-        "dynamic-text-anchor" : [
+        "variable-text-anchor" : [
             "top",
             "bottom",
             "left",
@@ -65,7 +65,7 @@
             "bottom-left",
             "bottom-right"
         ],
-        "dynamic-text-offset": 0.5,
+        "variable-text-offset": 0.5,
         "text-field": ["get", "image"]
       }
     }

@@ -966,7 +966,7 @@ class SymbolInstanceStruct extends Struct {
     numIconVertices: number;
     crossTileID: number;
     layoutTextSize: number;
-    dynamicTextOffset: number;
+    variableTextOffset: number;
     get anchorX() { return this._structArray.int16[this._pos2 + 0]; }
     set anchorX(x) { this._structArray.int16[this._pos2 + 0] = x; }
     get anchorY() { return this._structArray.int16[this._pos2 + 1]; }
@@ -1001,8 +1001,8 @@ class SymbolInstanceStruct extends Struct {
     set crossTileID(x) { this._structArray.uint32[this._pos4 + 8] = x; }
     get layoutTextSize() { return this._structArray.float32[this._pos4 + 9]; }
     set layoutTextSize(x) { this._structArray.float32[this._pos4 + 9] = x; }
-    get dynamicTextOffset() { return this._structArray.float32[this._pos4 + 10]; }
-    set dynamicTextOffset(x) { this._structArray.float32[this._pos4 + 10] = x; }
+    get variableTextOffset() { return this._structArray.float32[this._pos4 + 10]; }
+    set variableTextOffset(x) { this._structArray.float32[this._pos4 + 10] = x; }
 }
 
 SymbolInstanceStruct.prototype.size = 44;

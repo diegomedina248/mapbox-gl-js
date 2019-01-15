@@ -1782,13 +1782,13 @@
       },
       "property-type": "data-driven"
     },
-    "dynamic-text-offset": {
+    "variable-text-offset": {
       "type": "number",
       "units": "ems",
       "default": 0,
-      "doc": "A number representing the radial offset distance of text placed using `dynamic-text-anchor` from its anchor point. The actual x and y offsets are calculated based on which text-anchor is placed.",
+      "doc": "A number representing the radial offset distance of text placed using `variable-text-anchor` from its anchor point. The actual x and y offsets are calculated based on which text-anchor is placed.",
       "requires": [
-        "dynamic-text-anchor",
+        "variable-text-anchor",
         {
           "!" : "text-offset"
         }
@@ -1802,7 +1802,7 @@
         ]
       }
     },
-    "dynamic-text-anchor": {
+    "variable-text-anchor": {
       "type": "array",
       "value": "enum",
       "values": {
@@ -1842,15 +1842,12 @@
           "!": "text-offset"
         },
         {
-          "!": "text-justification"
-        },
-        {
             "symbol-placement": [
                 "point"
             ]
         }
       ],
-      "doc": "To increase the chance of placing high-priority labels on the map, you can provide an array of `text-anchor` locations to try placing a label. The order of the anchors in the array is the order in which placement will be attempted. `text-justification` will be chosen automatically based on the placed anchor. To offset a dynamically placed label, use `dynamic-text-offset` instead of `text-offset`.",
+      "doc": "To increase the chance of placing high-priority labels on the map, you can provide an array of `text-anchor` locations: the render will attempt to place the label at each location, in order, before moving onto the next label. If `text-justify` is not specified, the justification will be based on the chosen anchor position. To apply an offset, use the radial `variable-text-offset` instead of the cartesian `text-offset`.",
       "sdk-support": {
         "basic functionality": {
           "js": "next",

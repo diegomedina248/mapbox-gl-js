@@ -18,7 +18,7 @@ import {addDynamicAttributes} from '../data/bucket/symbol_bucket';
 
 import { getAnchorAlignment } from '../symbol/shaping';
 import ONE_EM from '../symbol/one_em';
-import { getDynamicOffset } from '../symbol/placement';
+import { getVariableOffset } from '../symbol/placement';
 import { easeCubicInOut } from '../util/util';
 
 import {
@@ -51,7 +51,7 @@ type SymbolTileRenderState = {
     }
 };
 
-function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolStyleLayer, coords: Array<OverscaledTileID>, dynamicOffsets: any) {
+function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolStyleLayer, coords: Array<OverscaledTileID>, variableOffsets: any) {
     if (painter.renderPass !== 'translucent') return;
 
     // Disable the stencil test so that labels aren't clipped to tile boundaries.
@@ -65,7 +65,7 @@ function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolSt
             layer.layout.get('icon-rotation-alignment'),
             layer.layout.get('icon-pitch-alignment'),
             layer.layout.get('icon-keep-upright'),
-            stencilMode, colorMode, dynamicOffsets
+            stencilMode, colorMode, variableOffsets
         );
     }
 
@@ -76,7 +76,7 @@ function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolSt
             layer.layout.get('text-rotation-alignment'),
             layer.layout.get('text-pitch-alignment'),
             layer.layout.get('text-keep-upright'),
-            stencilMode, colorMode, dynamicOffsets
+            stencilMode, colorMode, variableOffsets
         );
     }
 
@@ -85,26 +85,26 @@ function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolSt
     }
 }
 
-function calculateDynamicRenderOffset(anchor, width, height, radialOffset, textBoxScale, renderTextSize, perspectiveRatio): Point {
+function calculateVariableRenderShift(anchor, width, height, radialOffset, textBoxScale, renderTextSize, perspectiveRatio): Point {
     const {horizontalAlign, verticalAlign} = getAnchorAlignment(anchor);
     const shiftX = -(horizontalAlign - 0.5) * width;
     const shiftY = -(verticalAlign - 0.5) * height;
-    const offset = radialOffset ? getDynamicOffset(anchor, radialOffset) : [0, 0];
+    const offset = getVariableOffset(anchor, radialOffset);
     return new Point(
         (shiftX / textBoxScale + offset[0]) * renderTextSize * perspectiveRatio,
         (shiftY / textBoxScale + offset[1]) * renderTextSize * perspectiveRatio
     );
 }
 
-function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOffsets, symbolSize,
+function updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize,
                               transform, labelPlaneMatrix, posMatrix, tileScale, size) {
     const placedSymbols = bucket.text.placedSymbolArray;
     const dynamicLayoutVertexArray = bucket.text.dynamicLayoutVertexArray;
     dynamicLayoutVertexArray.clear();
     for (let s = 0; s < placedSymbols.length; s++) {
         const symbol: any = placedSymbols.get(s);
-        const dynamicOffset = (!symbol.hidden && symbol.crossTileID) ? dynamicOffsets[symbol.crossTileID] : null;
-        if (!dynamicOffset) {
+        const variableOffset = (!symbol.hidden && symbol.crossTileID) ? variableOffsets[symbol.crossTileID] : null;
+        if (!variableOffset) {
             // These symbols are from a justification that is not being used, or a label that wasn't placed
             // so we don't need to do the extra math to figure out what incremental shift to apply.
             symbolProjection.hideGlyphs(symbol.numGlyphs, dynamicLayoutVertexArray);
@@ -117,21 +117,21 @@ function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOff
                 renderTextSize *= bucket.tilePixelRatio / tileScale;
             }
 
-            const shift = calculateDynamicRenderOffset(
-                dynamicOffset.anchor,
-                dynamicOffset.width,
-                dynamicOffset.height,
-                dynamicOffset.radialOffset,
-                dynamicOffset.textBoxScale,
+            const shift = calculateVariableRenderShift(
+                variableOffset.anchor,
+                variableOffset.width,
+                variableOffset.height,
+                variableOffset.radialOffset,
+                variableOffset.textBoxScale,
                 renderTextSize,
                 perspectiveRatio);
-            if (dynamicOffset.prevAnchor && dynamicOffset.prevAnchor !== dynamicOffset.anchor) {
-                const prevShift = calculateDynamicRenderOffset(
-                    dynamicOffset.prevAnchor,
-                    dynamicOffset.width,
-                    dynamicOffset.height,
-                    dynamicOffset.radialOffset,
-                    dynamicOffset.textBoxScale,
+            if (variableOffset.prevAnchor && variableOffset.prevAnchor !== variableOffset.anchor) {
+                const prevShift = calculateVariableRenderShift(
+                    variableOffset.prevAnchor,
+                    variableOffset.width,
+                    variableOffset.height,
+                    variableOffset.radialOffset,
+                    variableOffset.textBoxScale,
                     renderTextSize,
                     perspectiveRatio);
                 shift.x = shift.x * t + prevShift.x * (1 - t);
@@ -155,7 +155,7 @@ function updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOff
 }
 
 function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate, translateAnchor,
-    rotationAlignment, pitchAlignment, keepUpright, stencilMode, colorMode, dynamicOffsets) {
+    rotationAlignment, pitchAlignment, keepUpright, stencilMode, colorMode, variableOffsets) {
 
     const context = painter.context;
     const gl = context.gl;
@@ -177,7 +177,7 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
 
     let program;
     let size;
-    const dynamicPlacement = layer.layout.get('dynamic-text-anchor');
+    const variablePlacement = layer.layout.get('variable-text-anchor');
 
     const tileRenderState: Array<SymbolTileRenderState> = [];
 
@@ -225,13 +225,13 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
 
         if (alongLine) {
             symbolProjection.updateLineLabels(bucket, coord.posMatrix, painter, isText, labelPlaneMatrix, glCoordMatrix, pitchWithMap, keepUpright);
-        } else if (isText && size && dynamicPlacement) {
+        } else if (isText && size && variablePlacement) {
             const tileScale = Math.pow(2, tr.zoom - tile.tileID.overscaledZ);
-            updateDynamicAnchors(bucket, rotateWithMap, pitchWithMap, t, dynamicOffsets, symbolSize, tr, labelPlaneMatrix, coord.posMatrix, tileScale, size);
+            updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize, tr, labelPlaneMatrix, coord.posMatrix, tileScale, size);
         }
 
         const matrix = painter.translatePosMatrix(coord.posMatrix, tile, translate, translateAnchor),
-            uLabelPlaneMatrix = (alongLine || (isText && dynamicPlacement)) ? identityMat4 : labelPlaneMatrix,
+            uLabelPlaneMatrix = (alongLine || (isText && variablePlacement)) ? identityMat4 : labelPlaneMatrix,
             uglCoordMatrix = painter.translatePosMatrix(glCoordMatrix, tile, translate, translateAnchor, true);
 
         const hasHalo = isSDF && layer.paint.get(isText ? 'text-halo-width' : 'icon-halo-width').constantOr(1) !== 0;
