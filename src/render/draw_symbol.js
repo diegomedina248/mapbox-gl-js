@@ -97,7 +97,7 @@ function calculateVariableRenderShift(anchor, width, height, radialOffset, textB
 }
 
 function updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize,
-                              transform, labelPlaneMatrix, posMatrix, tileScale, size) {
+                              transform, labelPlaneMatrix, posMatrix, tileScale, size, animate) {
     const placedSymbols = bucket.text.placedSymbolArray;
     const dynamicLayoutVertexArray = bucket.text.dynamicLayoutVertexArray;
     dynamicLayoutVertexArray.clear();
@@ -125,7 +125,7 @@ function updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableO
                 variableOffset.textBoxScale,
                 renderTextSize,
                 perspectiveRatio);
-            if (variableOffset.prevAnchor && variableOffset.prevAnchor !== variableOffset.anchor) {
+            if (animate && variableOffset.prevAnchor && variableOffset.prevAnchor !== variableOffset.anchor) {
                 const prevShift = calculateVariableRenderShift(
                     variableOffset.prevAnchor,
                     variableOffset.width,
@@ -227,7 +227,9 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
             symbolProjection.updateLineLabels(bucket, coord.posMatrix, painter, isText, labelPlaneMatrix, glCoordMatrix, pitchWithMap, keepUpright);
         } else if (isText && size && variablePlacement) {
             const tileScale = Math.pow(2, tr.zoom - tile.tileID.overscaledZ);
-            updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize, tr, labelPlaneMatrix, coord.posMatrix, tileScale, size);
+            updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize,
+                                  tr, labelPlaneMatrix, coord.posMatrix, tileScale, size,
+                                  layer.layout.get('variable-text-anchor-animation'));
         }
 
         const matrix = painter.translatePosMatrix(coord.posMatrix, tile, translate, translateAnchor),

@@ -1774,13 +1774,13 @@
           "android": "5.2.0",
           "ios": "3.7.0",
           "macos": "0.6.0"
-      },
-      "auto": {
-        "js": "next",
-        "android": "Not yet supported",
-        "ios": "Not yet supported",
-        "macos": "Not yet supported"
-      }
+        },
+        "auto": {
+          "js": "next",
+          "android": "Not yet supported",
+          "ios": "Not yet supported",
+          "macos": "Not yet supported"
+        }
       },
       "expression": {
         "interpolated": false,
@@ -1866,6 +1866,29 @@
         },
         "data-driven styling": {
           "js": "Not yet supported",
+          "android": "Not yet supported",
+          "ios": "Not yet supported",
+          "macos": "Not yet supported"
+        }
+      },
+      "expression": {
+        "interpolated": false,
+        "parameters": [
+          "zoom"
+        ]
+      },
+      "property-type": "data-constant"
+    },
+    "variable-text-anchor-animation": {
+      "type": "boolean",
+      "default": "true",
+      "requires": [
+        "variable-text-anchor"
+      ],
+      "doc": "Controls whether `variable-text-anchor` changes are animated or instant.",
+      "sdk-support": {
+        "basic functionality": {
+          "js": "next",
           "android": "Not yet supported",
           "ios": "Not yet supported",
           "macos": "Not yet supported"

@@ -20,6 +20,7 @@ import type {mat4} from 'gl-matrix';
 import type {CollisionBoxArray, CollisionVertexArray, SymbolInstance} from '../data/array_types';
 import type FeatureIndex from '../data/feature_index';
 import type {OverscaledTileID} from '../source/tile_id';
+import type {TextAnchor} from './symbol_layout';
 
 class OpacityState {
     opacity: number;
@@ -64,7 +65,7 @@ class JointPlacement {
     }
 }
 
-function calculateVariableLayoutOffset(anchor, width, height, radialOffset, textBoxScale): Point {
+function calculateVariableLayoutOffset(anchor: TextAnchor, width: number, height: number, radialOffset: number, textBoxScale: number): Point {
     const {horizontalAlign, verticalAlign} = getAnchorAlignment(anchor);
     const shiftX = -(horizontalAlign - 0.5) * width;
     const shiftY = -(verticalAlign - 0.5) * height;
@@ -115,8 +116,10 @@ export class RetainedQueryData {
     }
 }
 
+type CollisionGroup = { ID: number, predicate?: any };
+
 class CollisionGroups {
-    collisionGroups: { [groupName: string]: { ID: number, predicate?: any }};
+    collisionGroups: {[groupName: string]: CollisionGroup};
     maxGroupID: number;
     crossSourceCollisions: boolean;
 
@@ -260,49 +263,40 @@ export class Placement {
                 showCollisionBoxes, tile.holdingForFade(), seenCrossTileIDs, collisionBoxArray);
     }
 
-    attemptAnchorPlacement(anchor: any, collisionArrays: any,
-                           textBox: any, variableTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
-                           pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
+    attemptAnchorPlacement(anchor: TextAnchor, textBox: SingleCollisionBox,
+                           width: number, height: number, variableTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
+                           pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: CollisionGroup,
                            textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
-        const justification = getAnchorJustification(anchor);
-        const justifiedPlacedSymbol = justifications[justification];
-        if (justifiedPlacedSymbol < 0) {
-            return;
-        }
 
-        const width = textBox.x2 - textBox.x1;
-        const height = textBox.y2 - textBox.y1;
         const shift = calculateVariableLayoutOffset(anchor, width, height, variableTextOffset, textBoxScale);
 
-        if (collisionArrays.textBox) {
-            const placedGlyphBoxes = this.collisionIndex.placeCollisionBox(
-                shiftVariableCollisionBox(
-                    collisionArrays.textBox, shift.x, shift.y,
-                    rotateWithMap, pitchWithMap, this.transform.angle),
-                textAllowOverlap, textPixelRatio, posMatrix, collisionGroup.predicate);
+        const placedGlyphBoxes = this.collisionIndex.placeCollisionBox(
+            shiftVariableCollisionBox(
+                textBox, shift.x, shift.y,
+                rotateWithMap, pitchWithMap, this.transform.angle),
+            textAllowOverlap, textPixelRatio, posMatrix, collisionGroup.predicate);
 
-            if (placedGlyphBoxes.box.length > 0) {
-                let prevAnchor;
-                // If this label was placed in the previous placement, record the anchor position
-                // to allow us to animate the transition
-                if (this.prevPlacement &&
-                    this.prevPlacement.variableOffsets[symbolInstance.crossTileID] &&
-                    this.prevPlacement.placements[symbolInstance.crossTileID] &&
-                    this.prevPlacement.placements[symbolInstance.crossTileID].text) {
-                    prevAnchor = this.prevPlacement.variableOffsets[symbolInstance.crossTileID].anchor;
-                }
-                assert(symbolInstance.crossTileID !== 0);
-                this.variableOffsets[symbolInstance.crossTileID] = {
-                    radialOffset: variableTextOffset,
-                    width,
-                    height,
-                    anchor,
-                    textBoxScale,
-                    prevAnchor
-                };
-                this.hideUnplacedJustifications(bucket, justification, symbolInstance);
-                return placedGlyphBoxes;
+        if (placedGlyphBoxes.box.length > 0) {
+            let prevAnchor;
+            // If this label was placed in the previous placement, record the anchor position
+            // to allow us to animate the transition
+            if (this.prevPlacement &&
+                this.prevPlacement.variableOffsets[symbolInstance.crossTileID] &&
+                this.prevPlacement.placements[symbolInstance.crossTileID] &&
+                this.prevPlacement.placements[symbolInstance.crossTileID].text) {
+                prevAnchor = this.prevPlacement.variableOffsets[symbolInstance.crossTileID].anchor;
             }
+            assert(symbolInstance.crossTileID !== 0);
+            this.variableOffsets[symbolInstance.crossTileID] = {
+                radialOffset: variableTextOffset,
+                width,
+                height,
+                anchor,
+                textBoxScale,
+                prevAnchor
+            };
+            this.markUsedJustification(bucket, anchor, symbolInstance);
+            return placedGlyphBoxes;
         }
     }
 
@@ -374,12 +368,6 @@ export class Placement {
                     layoutTextSize,
                     variableTextOffset
                 } = symbolInstance;
-                // justify right = 1, left = 0, center = 0.5
-                const justifications = {
-                    "left": leftJustifiedTextSymbolIndex,
-                    "center": centerJustifiedTextSymbolIndex,
-                    "right": rightJustifiedTextSymbolIndex
-                };
 
                 if (collisionArrays.textBox && !layout.get('variable-text-anchor')) {
                     placedGlyphBoxes = this.collisionIndex.placeCollisionBox(collisionArrays.textBox,
@@ -387,6 +375,8 @@ export class Placement {
                     placeText = placedGlyphBoxes.box.length > 0;
                 } else if (collisionArrays.textBox) {
                     const textBox = collisionArrays.textBox;
+                    const width = textBox.x2 - textBox.x1;
+                    const height = textBox.y2 - textBox.y1;
                     const textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize);
                     let anchors = layout.get('variable-text-anchor');
                     if (this.prevPlacement && this.prevPlacement.variableOffsets[symbolInstance.crossTileID]) {
@@ -400,9 +390,9 @@ export class Placement {
 
                     for (const anchor of anchors) {
                         placedGlyphBoxes = this.attemptAnchorPlacement(
-                            anchor, collisionArrays, textBox, variableTextOffset,
+                            anchor, textBox, width, height, variableTextOffset,
                             textBoxScale, rotateWithMap, pitchWithMap, textPixelRatio, posMatrix, collisionGroup,
-                            justifications, textAllowOverlap, symbolInstance, bucket);
+                            textAllowOverlap, symbolInstance, bucket);
                         if (placedGlyphBoxes) {
                             placeText = true;
                             break;
@@ -414,8 +404,7 @@ export class Placement {
                         const prevOffset = this.prevPlacement.variableOffsets[symbolInstance.crossTileID];
                         if (prevOffset) {
                             this.variableOffsets[symbolInstance.crossTileID] = prevOffset;
-                            this.hideUnplacedJustifications(bucket,
-                                getAnchorJustification(prevOffset.anchor), symbolInstance);
+                            this.markUsedJustification(bucket, prevOffset.anchor, symbolInstance);
                         }
                     }
                 }
@@ -495,19 +484,24 @@ export class Placement {
         bucket.justReloaded = false;
     }
 
-    hideUnplacedJustifications(bucket: SymbolBucket, placedJustification: string, symbolInstance: SymbolInstance) {
-        const instances = {
+    markUsedJustification(bucket: SymbolBucket, placedAnchor: TextAnchor, symbolInstance: SymbolInstance) {
+        const justifications = {
             "left": symbolInstance.leftJustifiedTextSymbolIndex,
             "center": symbolInstance.centerJustifiedTextSymbolIndex,
             "right": symbolInstance.rightJustifiedTextSymbolIndex
         };
-        const placedIndex = instances[placedJustification];
-        bucket.text.placedSymbolArray.get(placedIndex).crossTileID = symbolInstance.crossTileID;
-        for (const justification in instances) {
-            const index = instances[justification];
-            if (index >= 0 && index !== placedIndex) {
-                // shift offscreen
-                bucket.text.placedSymbolArray.get(index).crossTileID = 0;
+        let autoIndex = justifications[getAnchorJustification(placedAnchor)];
+
+        for (const justification in justifications) {
+            const index = justifications[justification];
+            if (index >= 0) {
+                if (autoIndex >= 0 && index !== autoIndex) {
+                    // There are multiple justifications and this one isn't it: shift offscreen
+                    bucket.text.placedSymbolArray.get(index).crossTileID = 0;
+                } else {
+                    // Either this is the chosen justification or the justification is hardwired: use this one
+                    bucket.text.placedSymbolArray.get(index).crossTileID = symbolInstance.crossTileID;
+                }
             }
         }
     }
@@ -573,12 +567,6 @@ export class Placement {
             if (symbolBucket && tile.latestFeatureIndex && styleLayer.id === symbolBucket.layerIds[0]) {
                 this.updateBucketOpacities(symbolBucket, seenCrossTileIDs, tile.collisionBoxArray);
             }
-        }
-    }
-
-    hidePlacedSymbols(bucket: SymbolBucket, placedSymbolIndex: number, isHidden: boolean) {
-        if (placedSymbolIndex > -1) {
-            bucket.text.placedSymbolArray.get(placedSymbolIndex).hidden = isHidden ? 1 : 0;
         }
     }
 
@@ -651,14 +639,23 @@ export class Placement {
                 // its position at render time. If this layer has variable placement, shift the various
                 // symbol instances appropriately so that symbols from buckets that have yet to be placed
                 // offset appropriately.
-                const hide = opacityState.text.isHidden();
-                this.hidePlacedSymbols(bucket, verticalPlacedTextSymbolIndex, hide);
-                this.hidePlacedSymbols(bucket, centerJustifiedTextSymbolIndex, hide);
-                this.hidePlacedSymbols(bucket, leftJustifiedTextSymbolIndex, hide);
-                this.hidePlacedSymbols(bucket, rightJustifiedTextSymbolIndex, hide);
+                const hidden = opacityState.text.isHidden() ? 1 : 0;
+                if (verticalPlacedTextSymbolIndex > -1) {
+                    bucket.text.placedSymbolArray.get(verticalPlacedTextSymbolIndex).hidden = hidden;
+                }
+                if (centerJustifiedTextSymbolIndex > -1) {
+                    bucket.text.placedSymbolArray.get(centerJustifiedTextSymbolIndex).hidden = hidden;
+                }
+                if (leftJustifiedTextSymbolIndex > -1) {
+                    bucket.text.placedSymbolArray.get(leftJustifiedTextSymbolIndex).hidden = hidden;
+                }
+                if (rightJustifiedTextSymbolIndex > -1) {
+                    bucket.text.placedSymbolArray.get(rightJustifiedTextSymbolIndex).hidden = hidden;
+                }
+
                 const prevOffset = this.variableOffsets[symbolInstance.crossTileID];
                 if (prevOffset) {
-                    this.hideUnplacedJustifications(bucket, getAnchorJustification(prevOffset.anchor), symbolInstance);
+                    this.markUsedJustification(bucket, prevOffset.anchor, symbolInstance);
                 }
             }
 

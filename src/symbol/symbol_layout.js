@@ -150,7 +150,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
                 }
             } else {
                 if (textJustify === "auto") {
-                    textJustify = getAnchorAlignment(textAnchor);
+                    textJustify = getAnchorJustification(textAnchor);
                 }
                 const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
                 if (shaping) shapedTextOrientations.horizontal[textJustify] = shaping;
