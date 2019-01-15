@@ -490,13 +490,13 @@ register('StructArrayLayout2i2ui3ul3ui2f2ub1ul44', StructArrayLayout2i2ui3ul3ui2
 /**
  * Implementation of the StructArray layout:
  * [0]: Int16[6]
- * [12]: Uint16[11]
- * [36]: Uint32[1]
- * [40]: Float32[2]
+ * [12]: Uint16[9]
+ * [32]: Uint32[1]
+ * [36]: Float32[2]
  *
  * @private
  */
-class StructArrayLayout6i11ui1ul2f48 extends StructArray {
+class StructArrayLayout6i9ui1ul2f44 extends StructArray {
     uint8: Uint8Array;
     int16: Int16Array;
     uint16: Uint16Array;
@@ -511,15 +511,15 @@ class StructArrayLayout6i11ui1ul2f48 extends StructArray {
         this.float32 = new Float32Array(this.arrayBuffer);
     }
 
-    emplaceBack(v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number, v16: number, v17: number, v18: number, v19: number) {
+    emplaceBack(v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number, v16: number, v17: number) {
         const i = this.length;
         this.resize(i + 1);
-        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19);
+        return this.emplace(i, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17);
     }
 
-    emplace(i: number, v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number, v16: number, v17: number, v18: number, v19: number) {
-        const o2 = i * 24;
-        const o4 = i * 12;
+    emplace(i: number, v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number, v16: number, v17: number) {
+        const o2 = i * 22;
+        const o4 = i * 11;
         this.int16[o2 + 0] = v0;
         this.int16[o2 + 1] = v1;
         this.int16[o2 + 2] = v2;
@@ -535,17 +535,15 @@ class StructArrayLayout6i11ui1ul2f48 extends StructArray {
         this.uint16[o2 + 12] = v12;
         this.uint16[o2 + 13] = v13;
         this.uint16[o2 + 14] = v14;
-        this.uint16[o2 + 15] = v15;
-        this.uint16[o2 + 16] = v16;
-        this.uint32[o4 + 9] = v17;
-        this.float32[o4 + 10] = v18;
-        this.float32[o4 + 11] = v19;
+        this.uint32[o4 + 8] = v15;
+        this.float32[o4 + 9] = v16;
+        this.float32[o4 + 10] = v17;
         return i;
     }
 }
 
-StructArrayLayout6i11ui1ul2f48.prototype.bytesPerElement = 48;
-register('StructArrayLayout6i11ui1ul2f48', StructArrayLayout6i11ui1ul2f48);
+StructArrayLayout6i9ui1ul2f44.prototype.bytesPerElement = 44;
+register('StructArrayLayout6i9ui1ul2f44', StructArrayLayout6i9ui1ul2f44);
 
 
 /**
@@ -963,9 +961,7 @@ class SymbolInstanceStruct extends Struct {
     iconBoxStartIndex: number;
     iconBoxEndIndex: number;
     featureIndex: number;
-    numRightJustifiedGlyphVertices: number;
-    numCenterJustifiedGlyphVertices: number;
-    numLeftJustifiedGlyphVertices: number;
+    numHorizontalGlyphVertices: number;
     numVerticalGlyphVertices: number;
     numIconVertices: number;
     crossTileID: number;
@@ -995,25 +991,21 @@ class SymbolInstanceStruct extends Struct {
     set iconBoxEndIndex(x) { this._structArray.uint16[this._pos2 + 10] = x; }
     get featureIndex() { return this._structArray.uint16[this._pos2 + 11]; }
     set featureIndex(x) { this._structArray.uint16[this._pos2 + 11] = x; }
-    get numRightJustifiedGlyphVertices() { return this._structArray.uint16[this._pos2 + 12]; }
-    set numRightJustifiedGlyphVertices(x) { this._structArray.uint16[this._pos2 + 12] = x; }
-    get numCenterJustifiedGlyphVertices() { return this._structArray.uint16[this._pos2 + 13]; }
-    set numCenterJustifiedGlyphVertices(x) { this._structArray.uint16[this._pos2 + 13] = x; }
-    get numLeftJustifiedGlyphVertices() { return this._structArray.uint16[this._pos2 + 14]; }
-    set numLeftJustifiedGlyphVertices(x) { this._structArray.uint16[this._pos2 + 14] = x; }
-    get numVerticalGlyphVertices() { return this._structArray.uint16[this._pos2 + 15]; }
-    set numVerticalGlyphVertices(x) { this._structArray.uint16[this._pos2 + 15] = x; }
-    get numIconVertices() { return this._structArray.uint16[this._pos2 + 16]; }
-    set numIconVertices(x) { this._structArray.uint16[this._pos2 + 16] = x; }
-    get crossTileID() { return this._structArray.uint32[this._pos4 + 9]; }
-    set crossTileID(x) { this._structArray.uint32[this._pos4 + 9] = x; }
-    get layoutTextSize() { return this._structArray.float32[this._pos4 + 10]; }
-    set layoutTextSize(x) { this._structArray.float32[this._pos4 + 10] = x; }
-    get dynamicTextOffset() { return this._structArray.float32[this._pos4 + 11]; }
-    set dynamicTextOffset(x) { this._structArray.float32[this._pos4 + 11] = x; }
+    get numHorizontalGlyphVertices() { return this._structArray.uint16[this._pos2 + 12]; }
+    set numHorizontalGlyphVertices(x) { this._structArray.uint16[this._pos2 + 12] = x; }
+    get numVerticalGlyphVertices() { return this._structArray.uint16[this._pos2 + 13]; }
+    set numVerticalGlyphVertices(x) { this._structArray.uint16[this._pos2 + 13] = x; }
+    get numIconVertices() { return this._structArray.uint16[this._pos2 + 14]; }
+    set numIconVertices(x) { this._structArray.uint16[this._pos2 + 14] = x; }
+    get crossTileID() { return this._structArray.uint32[this._pos4 + 8]; }
+    set crossTileID(x) { this._structArray.uint32[this._pos4 + 8] = x; }
+    get layoutTextSize() { return this._structArray.float32[this._pos4 + 9]; }
+    set layoutTextSize(x) { this._structArray.float32[this._pos4 + 9] = x; }
+    get dynamicTextOffset() { return this._structArray.float32[this._pos4 + 10]; }
+    set dynamicTextOffset(x) { this._structArray.float32[this._pos4 + 10] = x; }
 }
 
-SymbolInstanceStruct.prototype.size = 48;
+SymbolInstanceStruct.prototype.size = 44;
 
 export type SymbolInstance = SymbolInstanceStruct;
 
@@ -1021,7 +1013,7 @@ export type SymbolInstance = SymbolInstanceStruct;
 /**
  * @private
  */
-export class SymbolInstanceArray extends StructArrayLayout6i11ui1ul2f48 {
+export class SymbolInstanceArray extends StructArrayLayout6i9ui1ul2f44 {
     /**
      * Return the SymbolInstanceStruct at the given location in the array.
      * @param {number} index The index of the element.
@@ -1148,7 +1140,7 @@ export {
     StructArrayLayout2i2i2i12,
     StructArrayLayout2ub2f12,
     StructArrayLayout2i2ui3ul3ui2f2ub1ul44,
-    StructArrayLayout6i11ui1ul2f48,
+    StructArrayLayout6i9ui1ul2f44,
     StructArrayLayout1f4,
     StructArrayLayout3i6,
     StructArrayLayout1ul2ui8,

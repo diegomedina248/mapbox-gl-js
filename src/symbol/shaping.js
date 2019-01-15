@@ -36,7 +36,8 @@ export type Shaping = {
     bottom: number,
     left: number,
     right: number,
-    writingMode: 1 | 2
+    writingMode: 1 | 2,
+    lineCount: number
 };
 
 export type SymbolAnchor = 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -203,6 +204,7 @@ function shapeText(text: Formatted,
     if (!positionedGlyphs.length) return false;
 
     shaping.text = shaping.text.toString();
+    shaping.lineCount = lines.length;
     return shaping;
 }
 

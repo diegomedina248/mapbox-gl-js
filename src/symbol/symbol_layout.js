@@ -131,13 +131,23 @@ export function performSymbolLayout(bucket: SymbolBucket,
 
             // If this layer uses dynamic-text-anchor, generate shapings for all justification possibilities.
             if (!textAlongLine && dynamicTextAnchor) {
+                let singleLine = false;
                 for (let i = 0; i < justifications.length; i++) {
                     const justification: TextJustify = justifications[i];
                     if (shapedTextOrientations.horizontal[justification]) continue;
-                    // If using dynamic-text-anchor for the layer, we use a center anchor for all shapings and apply
-                    // the offsets for the anchor in the placement step.
-                    const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, 'center', justification, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
-                    if (shaping) shapedTextOrientations.horizontal[justification] = shaping;
+                    if (singleLine) {
+                        // If the shaping for the first justification was only a single line, we
+                        // can re-use it for the other justifications
+                        shapedTextOrientations.horizontal[justification] = shapedTextOrientations.horizontal[0];
+                    } else {
+                        // If using dynamic-text-anchor for the layer, we use a center anchor for all shapings and apply
+                        // the offsets for the anchor in the placement step.
+                        const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, 'center', justification, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
+                        if (shaping) {
+                            shapedTextOrientations.horizontal[justification] = shaping;
+                            singleLine = shaping.lineCount === 1;
+                        }
+                    }
                 }
             } else {
                 const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
@@ -330,7 +340,7 @@ function addTextVertices(bucket: SymbolBucket,
                          textOffset: [number, number],
                          lineArray: {lineStartIndex: number, lineLength: number},
                          writingMode: number,
-                         placementType: 'vertical' | 'center' | 'left' | 'right',
+                         placementTypes: Array<'vertical' | 'center' | 'left' | 'right'>,
                          placedTextSymbolIndices: {[string]: number},
                          glyphPositionMap: {[string]: {[number]: GlyphPosition}},
                          sizes: Sizes) {
@@ -371,7 +381,9 @@ function addTextVertices(bucket: SymbolBucket,
 
     // The placedSymbolArray is used at render time in drawTileSymbols
     // These indices allow access to the array at collision detection time
-    placedTextSymbolIndices[placementType] = bucket.text.placedSymbolArray.length - 1;
+    for (const placementType of placementTypes) {
+        placedTextSymbolIndices[placementType] = bucket.text.placedSymbolArray.length - 1;
+    }
 
     return glyphQuads.length * 4;
 }
@@ -409,7 +421,7 @@ function addSymbol(bucket: SymbolBucket,
     let textCollisionFeature, iconCollisionFeature;
 
     let numIconVertices = 0;
-    const numGlyphVertices = {};
+    let numHorizontalGlyphVertices = 0;
     let numVerticalGlyphVertices = 0;
     const placedTextSymbolIndices = {};
     let key = murmur3('');
@@ -426,11 +438,22 @@ function addSymbol(bucket: SymbolBucket,
             textCollisionFeature = new CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, shaping, textBoxScale, textPadding, textAlongLine, bucket.overscaling, textRotate);
         }
 
-        numGlyphVertices[justification] = addTextVertices(bucket, anchor, shaping, layer, textAlongLine, feature, textOffset, lineArray, shapedTextOrientations.vertical ? WritingMode.horizontal : WritingMode.horizontalOnly, justification, placedTextSymbolIndices, glyphPositionMap, sizes);
+        const singleLine = shaping.lineCount === 1;
+        numHorizontalGlyphVertices += addTextVertices(
+            bucket, anchor, shaping, layer, textAlongLine, feature, textOffset, lineArray,
+            shapedTextOrientations.vertical ? WritingMode.horizontal : WritingMode.horizontalOnly,
+            singleLine ? Object.keys(shapedTextOrientations.horizontal) : [justification],
+            placedTextSymbolIndices, glyphPositionMap, sizes);
+
+        if (singleLine) {
+            break;
+        }
     }
 
     if (shapedTextOrientations.vertical) {
-        numVerticalGlyphVertices += addTextVertices(bucket, anchor, shapedTextOrientations.vertical, layer, textAlongLine, feature, textOffset, lineArray, WritingMode.vertical, 'vertical', placedTextSymbolIndices, glyphPositionMap, sizes);
+        numVerticalGlyphVertices += addTextVertices(
+            bucket, anchor, shapedTextOrientations.vertical, layer, textAlongLine, feature,
+            textOffset, lineArray, WritingMode.vertical, ['vertical'], placedTextSymbolIndices, glyphPositionMap, sizes);
     }
 
     const textBoxStartIndex = textCollisionFeature ? textCollisionFeature.boxStartIndex : bucket.collisionBoxArray.length;
@@ -491,8 +514,8 @@ function addSymbol(bucket: SymbolBucket,
         anchor.x,
         anchor.y,
         placedTextSymbolIndices.right >= 0 ? placedTextSymbolIndices.right : -1,
-        placedTextSymbolIndices.center  >= 0 ? placedTextSymbolIndices.center : -1,
-        placedTextSymbolIndices.left  >= 0 ? placedTextSymbolIndices.left : -1,
+        placedTextSymbolIndices.center >= 0 ? placedTextSymbolIndices.center : -1,
+        placedTextSymbolIndices.left >= 0 ? placedTextSymbolIndices.left : -1,
         placedTextSymbolIndices.vertical || -1,
         key,
         textBoxStartIndex,
@@ -500,9 +523,7 @@ function addSymbol(bucket: SymbolBucket,
         iconBoxStartIndex,
         iconBoxEndIndex,
         featureIndex,
-        numGlyphVertices.right || 0,
-        numGlyphVertices.center || 0,
-        numGlyphVertices.left || 0,
+        numHorizontalGlyphVertices,
         numVerticalGlyphVertices,
         numIconVertices,
         0,

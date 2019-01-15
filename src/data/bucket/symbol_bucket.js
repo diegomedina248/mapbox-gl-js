@@ -745,17 +745,27 @@ class SymbolBucket implements Bucket {
             const symbolInstance = this.symbolInstances.get(i);
             this.featureSortOrder.push(symbolInstance.featureIndex);
 
-            if (symbolInstance.rightJustifiedTextSymbolIndex >= 0) {
-                this.addIndicesForPlacedTextSymbol(symbolInstance.rightJustifiedTextSymbolIndex);
+            const {
+                rightJustifiedTextSymbolIndex,
+                centerJustifiedTextSymbolIndex,
+                leftJustifiedTextSymbolIndex,
+                verticalPlacedTextSymbolIndex
+            } = symbolInstance;
+
+            let usedHorizontalIndex;
+            if (rightJustifiedTextSymbolIndex >= 0) {
+                usedHorizontalIndex = rightJustifiedTextSymbolIndex;
+                this.addIndicesForPlacedTextSymbol(rightJustifiedTextSymbolIndex);
             }
-            if (symbolInstance.centerJustifiedTextSymbolIndex >= 0) {
-                this.addIndicesForPlacedTextSymbol(symbolInstance.centerJustifiedTextSymbolIndex);
+            if (centerJustifiedTextSymbolIndex >= 0 && centerJustifiedTextSymbolIndex !== usedIndex) {
+                usedHorizontalIndex = centerJustifiedTextSymbolIndex;
+                this.addIndicesForPlacedTextSymbol(centerJustifiedTextSymbolIndex);
             }
-            if (symbolInstance.leftJustifiedTextSymbolIndex >= 0) {
-                this.addIndicesForPlacedTextSymbol(symbolInstance.leftJustifiedTextSymbolIndex);
+            if (leftJustifiedTextSymbolIndex >= 0 && leftJustifiedTextSymbolIndex !== usedIndex) {
+                this.addIndicesForPlacedTextSymbol(leftJustifiedTextSymbolIndex);
             }
-            if (symbolInstance.verticalPlacedTextSymbolIndex >= 0) {
-                this.addIndicesForPlacedTextSymbol(symbolInstance.verticalPlacedTextSymbolIndex);
+            if (verticalPlacedTextSymbolIndex >= 0) {
+                this.addIndicesForPlacedTextSymbol(verticalPlacedTextSymbolIndex);
             }
 
             const placedIcon = this.icon.placedSymbolArray.get(i);

@@ -476,10 +476,8 @@ export class Placement {
                 }
 
                 const iconWithoutText = textOptional || (
-                    symbolInstance.numCenterJustifiedGlyphVertices === 0 &&
-                                        symbolInstance.numRightJustifiedGlyphVertices === 0 &&
-                                        symbolInstance.numLeftJustifiedGlyphVertices === 0 &&
-                                        symbolInstance.numVerticalGlyphVertices === 0);
+                    symbolInstance.numHorizontalGlyphVertices === 0 &&
+                    symbolInstance.numVerticalGlyphVertices === 0);
                 const textWithoutIcon = iconOptional || symbolInstance.numIconVertices === 0;
 
                 // Combine the scales for icons and text.
@@ -516,21 +514,18 @@ export class Placement {
     }
 
     hideUnplacedJustifications(bucket: SymbolBucket, placedJustification: string, symbolInstance: SymbolInstance) {
-        const { leftJustifiedTextSymbolIndex,
-            rightJustifiedTextSymbolIndex,
-            centerJustifiedTextSymbolIndex } = symbolInstance;
-        const instances = [
-            {justification: "left", index: leftJustifiedTextSymbolIndex},
-            {justification: "center", index: centerJustifiedTextSymbolIndex},
-            {justification: "right", index: rightJustifiedTextSymbolIndex}
-        ];
-        for (const i of instances) {
-            if (i.index < 0) continue;
-            if (i.justification !== placedJustification) {
+        const instances = {
+            "left": symbolInstance.leftJustifiedTextSymbolIndex,
+            "center": symbolInstance.centerJustifiedTextSymbolIndex,
+            "right": symbolInstance.rightJustifiedTextSymbolIndex
+        };
+        const placedIndex = instances[placedJustification];
+        bucket.text.placedSymbolArray.get(placedIndex).crossTileID = symbolInstance.crossTileID;
+        for (const justification in instances) {
+            const index = instances[justification];
+            if (index >= 0 && index !== placedIndex) {
                 // shift offscreen
-                bucket.text.placedSymbolArray.get(i.index).crossTileID = 0;
-            } else {
-                bucket.text.placedSymbolArray.get(i.index).crossTileID = symbolInstance.crossTileID;
+                bucket.text.placedSymbolArray.get(index).crossTileID = 0;
             }
         }
     }
@@ -634,9 +629,7 @@ export class Placement {
         for (let s = 0; s < bucket.symbolInstances.length; s++) {
             const symbolInstance = bucket.symbolInstances.get(s);
             const {
-                numCenterJustifiedGlyphVertices,
-                numRightJustifiedGlyphVertices,
-                numLeftJustifiedGlyphVertices,
+                numHorizontalGlyphVertices,
                 numVerticalGlyphVertices,
                 rightJustifiedTextSymbolIndex,
                 centerJustifiedTextSymbolIndex,
@@ -658,9 +651,7 @@ export class Placement {
 
             seenCrossTileIDs[crossTileID] = true;
 
-            const hasText = numCenterJustifiedGlyphVertices > 0 ||
-                            numRightJustifiedGlyphVertices > 0 ||
-                            numLeftJustifiedGlyphVertices > 0 ||
+            const hasText = numHorizontalGlyphVertices > 0 ||
                             numVerticalGlyphVertices > 0;
 
             const hasIcon = symbolInstance.numIconVertices > 0;
@@ -669,8 +660,7 @@ export class Placement {
                 const packedOpacity = packOpacity(opacityState.text);
                 // Vertical text fades in/out on collision the same way as corresponding
                 // horizontal text. Switch between vertical/horizontal should be instantaneous
-                const opacityEntryCount = (numCenterJustifiedGlyphVertices + numRightJustifiedGlyphVertices +
-                                           numLeftJustifiedGlyphVertices + numVerticalGlyphVertices) / 4;
+                const opacityEntryCount = (numHorizontalGlyphVertices + numVerticalGlyphVertices) / 4;
 
                 for (let i = 0; i < opacityEntryCount; i++) {
                     bucket.text.opacityVertexArray.emplaceBack(packedOpacity);
