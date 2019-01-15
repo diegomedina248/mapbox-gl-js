@@ -97,7 +97,7 @@ function calculateVariableRenderShift(anchor, width, height, radialOffset, textB
 }
 
 function updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize,
-                              transform, labelPlaneMatrix, posMatrix, tileScale, size, animate) {
+                               transform, labelPlaneMatrix, posMatrix, tileScale, size, animate) {
     const placedSymbols = bucket.text.placedSymbolArray;
     const dynamicLayoutVertexArray = bucket.text.dynamicLayoutVertexArray;
     dynamicLayoutVertexArray.clear();

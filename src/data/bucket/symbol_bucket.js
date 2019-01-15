@@ -745,27 +745,21 @@ class SymbolBucket implements Bucket {
             const symbolInstance = this.symbolInstances.get(i);
             this.featureSortOrder.push(symbolInstance.featureIndex);
 
-            const {
-                rightJustifiedTextSymbolIndex,
-                centerJustifiedTextSymbolIndex,
-                leftJustifiedTextSymbolIndex,
-                verticalPlacedTextSymbolIndex
-            } = symbolInstance;
+            [
+                symbolInstance.rightJustifiedTextSymbolIndex,
+                symbolInstance.centerJustifiedTextSymbolIndex,
+                symbolInstance.leftJustifiedTextSymbolIndex
+            ].forEach((index, i, array) => {
+                // Only add a given index the first time it shows up,
+                // to avoid duplicate opacity entries when multiple justifications
+                // share the same glyphs.
+                if (index >= 0 && array.indexOf(index) === i) {
+                    this.addIndicesForPlacedTextSymbol(index);
+                }
+            });
 
-            let usedHorizontalIndex;
-            if (rightJustifiedTextSymbolIndex >= 0) {
-                usedHorizontalIndex = rightJustifiedTextSymbolIndex;
-                this.addIndicesForPlacedTextSymbol(rightJustifiedTextSymbolIndex);
-            }
-            if (centerJustifiedTextSymbolIndex >= 0 && centerJustifiedTextSymbolIndex !== usedHorizontalIndex) {
-                usedHorizontalIndex = centerJustifiedTextSymbolIndex;
-                this.addIndicesForPlacedTextSymbol(centerJustifiedTextSymbolIndex);
-            }
-            if (leftJustifiedTextSymbolIndex >= 0 && leftJustifiedTextSymbolIndex !== usedHorizontalIndex) {
-                this.addIndicesForPlacedTextSymbol(leftJustifiedTextSymbolIndex);
-            }
-            if (verticalPlacedTextSymbolIndex >= 0) {
-                this.addIndicesForPlacedTextSymbol(verticalPlacedTextSymbolIndex);
+            if (symbolInstance.verticalPlacedTextSymbolIndex >= 0) {
+                this.addIndicesForPlacedTextSymbol(symbolInstance.verticalPlacedTextSymbolIndex);
             }
 
             const placedIcon = this.icon.placedSymbolArray.get(i);

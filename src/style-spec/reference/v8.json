@@ -1795,7 +1795,7 @@
       "type": "number",
       "units": "ems",
       "default": 0,
-      "doc": "A number representing the radial offset distance of text placed using `variable-text-anchor` from its anchor point. The actual x and y offsets are calculated based on which text-anchor is placed.",
+      "doc": "A number representing the radial offset of text placed using `variable-text-anchor`. The direction of the offset is based on the chosen anchor.",
       "requires": [
         "variable-text-anchor",
         {

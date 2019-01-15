@@ -118,7 +118,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
             // Layers with multiple anchors use the `variable-text-offset` property and the [x, y] offset vector
             // is calculated at placement time based on the placed `text-anchor`.
             const textOffset: [number, number] = ((variableTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);
-            let textJustify = layout.get('text-justify').evaluate(feature, {});
+            let textJustify = textAlongLine ? "center" : layout.get('text-justify').evaluate(feature, {});
 
             const maxWidth =  symbolPlacement === 'point' ?
                 layout.get('text-max-width').evaluate(feature, {}) * ONE_EM :
