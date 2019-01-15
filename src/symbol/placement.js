@@ -260,7 +260,7 @@ export class Placement {
                 showCollisionBoxes, tile.holdingForFade(), seenCrossTileIDs, collisionBoxArray);
     }
 
-    attemptAnchorPlacement(anchor: any, dynamicAnchors: any, collisionArrays: any,
+    attemptAnchorPlacement(anchor: any, collisionArrays: any,
                            textBox: any, dynamicTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
                            pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: any, justifications: any,
                            textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
@@ -388,7 +388,7 @@ export class Placement {
                 } else if (collisionArrays.textBox) {
                     const textBox = collisionArrays.textBox;
                     const textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize);
-                    let dynamicAnchors = layout.get('dynamic-text-anchor');
+                    let anchors = layout.get('dynamic-text-anchor');
                     if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
                         const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
                         if (anchors[0] !== prevOffsets.anchor) {
@@ -400,7 +400,7 @@ export class Placement {
 
                     for (const anchor of anchors) {
                         placedGlyphBoxes = this.attemptAnchorPlacement(
-                            anchor, dynamicAnchors, collisionArrays, textBox, dynamicTextOffset,
+                            anchor, collisionArrays, textBox, dynamicTextOffset,
                             textBoxScale, rotateWithMap, pitchWithMap, textPixelRatio, posMatrix, collisionGroup,
                             justifications, textAllowOverlap, symbolInstance, bucket);
                         if (placedGlyphBoxes) {

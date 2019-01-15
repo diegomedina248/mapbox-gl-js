@@ -47,7 +47,17 @@
           "Arial Unicode MS Bold"
         ],
         "text-max-width": 5,
-        "dynamic-text-anchor": ["auto"]
+        "dynamic-text-anchor": [
+            "center",
+            "top",
+            "bottom",
+            "left",
+            "right",
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right"
+        ]
       }
     }]
 }
