@@ -304,9 +304,13 @@ export class Placement {
 
             if (placedGlyphBoxes.box.length > 0) {
                 let prevAnchor;
-                if (this.prevPlacement && this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID]) {
-                    const prevOffsets = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID];
-                    prevAnchor = prevOffsets.anchor;
+                // If this label was placed in the previous placement, record the anchor position
+                // to allow us to animate the transition
+                if (this.prevPlacement &&
+                    this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID] &&
+                    this.prevPlacement.placements[symbolInstance.crossTileID] &&
+                    this.prevPlacement.placements[symbolInstance.crossTileID].text) {
+                    prevAnchor = this.prevPlacement.dynamicOffsets[symbolInstance.crossTileID].anchor;
                 }
                 assert(symbolInstance.crossTileID !== 0);
                 this.dynamicOffsets[symbolInstance.crossTileID] = {
