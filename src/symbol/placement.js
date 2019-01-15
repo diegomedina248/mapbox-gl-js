@@ -9,7 +9,6 @@ import { getAnchorAlignment } from './shaping';
 import symbolLayerProperties from '../style/style_layer/symbol_style_layer_properties';
 import assert from 'assert';
 import pixelsToTileUnits from '../source/pixels_to_tile_units';
-import {warnOnce} from '../util/util';
 import Point from '@mapbox/point-geometry';
 import type Transform from '../geo/transform';
 import type StyleLayer from '../style/style_layer';
@@ -490,7 +489,7 @@ export class Placement {
             "center": symbolInstance.centerJustifiedTextSymbolIndex,
             "right": symbolInstance.rightJustifiedTextSymbolIndex
         };
-        let autoIndex = justifications[getAnchorJustification(placedAnchor)];
+        const autoIndex = justifications[getAnchorJustification(placedAnchor)];
 
         for (const justification in justifications) {
             const index = justifications[justification];

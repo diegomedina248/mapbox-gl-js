@@ -114,7 +114,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
             const symbolPlacement = layout.get('symbol-placement');
             const textAnchor = layout.get('text-anchor').evaluate(feature, {});
             // variable placement doesn't apply to line-placed labels
-            let variableTextAnchor = layout.get('variable-text-anchor');
+            const variableTextAnchor = layout.get('variable-text-anchor');
             // Layers with multiple anchors use the `variable-text-offset` property and the [x, y] offset vector
             // is calculated at placement time based on the placed `text-anchor`.
             const textOffset: [number, number] = ((variableTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);
