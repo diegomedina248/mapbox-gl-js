@@ -228,9 +228,10 @@ export class Placement {
         this.fadeDuration = fadeDuration;
         this.retainedQueryData = {};
         this.collisionGroups = new CollisionGroups(crossSourceCollisions);
+
         this.prevPlacement = prevPlacement;
         if (prevPlacement) {
-            prevPlacement.prevPlacement = undefined;
+            prevPlacement.prevPlacement = undefined; // Only hold on to one placement back
         }
     }
 
@@ -274,8 +275,8 @@ export class Placement {
                 showCollisionBoxes, tile.holdingForFade(), seenCrossTileIDs, collisionBoxArray);
     }
 
-    attemptAnchorPlacement(anchor: TextAnchor, textBox: SingleCollisionBox,
-                           width: number, height: number, variableTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
+    attemptAnchorPlacement(anchor: TextAnchor, textBox: SingleCollisionBox, width: number, height: number,
+                           variableTextOffset: number, textBoxScale: number, rotateWithMap: boolean,
                            pitchWithMap: boolean, textPixelRatio: number, posMatrix: mat4, collisionGroup: CollisionGroup,
                            textAllowOverlap: boolean, symbolInstance: SymbolInstance, bucket: SymbolBucket) {
 
@@ -379,15 +380,16 @@ export class Placement {
                                 layout.get('text-allow-overlap'), textPixelRatio, posMatrix, collisionGroup.predicate);
                         placeText = placedGlyphBoxes.box.length > 0;
                     } else {
-
                         const width = textBox.x2 - textBox.x1;
                         const height = textBox.y2 - textBox.y1;
                         const textBoxScale = symbolInstance.textBoxScale;
                         let anchors = layout.get('variable-text-anchor');
+
+                        // If we this symbol was in the last placement, shift the previously used
+                        // anchor to the front of the anchor list.
                         if (this.prevPlacement && this.prevPlacement.variableOffsets[symbolInstance.crossTileID]) {
                             const prevOffsets = this.prevPlacement.variableOffsets[symbolInstance.crossTileID];
                             if (anchors[0] !== prevOffsets.anchor) {
-                                // Shift previously used anchor to front of list
                                 anchors = anchors.filter(anchor => anchor !== prevOffsets.anchor);
                                 anchors.unshift(prevOffsets.anchor);
                             }
@@ -396,16 +398,17 @@ export class Placement {
                         for (const anchor of anchors) {
                             placedGlyphBoxes = this.attemptAnchorPlacement(
                                 anchor, textBox, width, height, symbolInstance.variableTextOffset,
-                                textBoxScale, rotateWithMap, pitchWithMap, textPixelRatio, posMatrix, collisionGroup,
-                                textAllowOverlap, symbolInstance, bucket);
+                                textBoxScale, rotateWithMap, pitchWithMap, textPixelRatio, posMatrix,
+                                collisionGroup, textAllowOverlap, symbolInstance, bucket);
                             if (placedGlyphBoxes) {
                                 placeText = true;
                                 break;
                             }
                         }
+
+                        // If we didn't get placed, we still need to copy our position from the last placement for
+                        // fade animations
                         if (!this.variableOffsets[symbolInstance.crossTileID] && this.prevPlacement) {
-                            // If we didn't get placed, we still need to copy our position from the last placement for
-                            // fade animations
                             const prevOffset = this.prevPlacement.variableOffsets[symbolInstance.crossTileID];
                             if (prevOffset) {
                                 this.variableOffsets[symbolInstance.crossTileID] = prevOffset;
@@ -451,9 +454,8 @@ export class Placement {
                     offscreen = offscreen && placedIconBoxes.offscreen;
                 }
 
-                const iconWithoutText = textOptional || (
-                    symbolInstance.numHorizontalGlyphVertices === 0 &&
-                    symbolInstance.numVerticalGlyphVertices === 0);
+                const iconWithoutText = textOptional ||
+                    (symbolInstance.numHorizontalGlyphVertices === 0 && symbolInstance.numVerticalGlyphVertices === 0);
                 const textWithoutIcon = iconOptional || symbolInstance.numIconVertices === 0;
 
                 // Combine the scales for icons and text.
@@ -480,8 +482,8 @@ export class Placement {
 
                 assert(symbolInstance.crossTileID !== 0);
                 assert(bucket.bucketInstanceId !== 0);
-                this.placements[symbolInstance.crossTileID] = new JointPlacement(placeText || alwaysShowText, placeIcon || alwaysShowIcon, offscreen || bucket.justReloaded);
 
+                this.placements[symbolInstance.crossTileID] = new JointPlacement(placeText || alwaysShowText, placeIcon || alwaysShowIcon, offscreen || bucket.justReloaded);
                 seenCrossTileIDs[symbolInstance.crossTileID] = true;
             }
         }
@@ -622,9 +624,7 @@ export class Placement {
 
             seenCrossTileIDs[crossTileID] = true;
 
-            const hasText = numHorizontalGlyphVertices > 0 ||
-                            numVerticalGlyphVertices > 0;
-
+            const hasText = numHorizontalGlyphVertices > 0 || numVerticalGlyphVertices > 0;
             const hasIcon = symbolInstance.numIconVertices > 0;
 
             if (hasText) {
@@ -632,7 +632,6 @@ export class Placement {
                 // Vertical text fades in/out on collision the same way as corresponding
                 // horizontal text. Switch between vertical/horizontal should be instantaneous
                 const opacityEntryCount = (numHorizontalGlyphVertices + numVerticalGlyphVertices) / 4;
-
                 for (let i = 0; i < opacityEntryCount; i++) {
                     bucket.text.opacityVertexArray.emplaceBack(packedOpacity);
                 }
@@ -673,19 +672,31 @@ export class Placement {
                 if (collisionArrays) {
                     if (collisionArrays.textBox) {
                         let shift = new Point(0, 0);
-                        if (variablePlacement && opacityState.text.placed) {
+                        let used = true;
+                        if (variablePlacement) {
                             const variableOffset = this.variableOffsets[crossTileID];
-                            shift = calculateVariableLayoutOffset(variableOffset.anchor,
-                               variableOffset.width,
-                               variableOffset.height,
-                               variableOffset.radialOffset,
-                               variableOffset.textBoxScale);
-                            if (rotateWithMap) {
-                                shift._rotate(pitchWithMap ? this.transform.angle : -this.transform.angle);
+                            if (variableOffset) {
+                                // This will show either the currently placed position or the last
+                                // successfully placed position (so you can visualize what collision
+                                // just made the symbol disappear, and the most likely place for the
+                                // symbol to come back)
+                                shift = calculateVariableLayoutOffset(variableOffset.anchor,
+                                   variableOffset.width,
+                                   variableOffset.height,
+                                   variableOffset.radialOffset,
+                                   variableOffset.textBoxScale);
+                                if (rotateWithMap) {
+                                    shift._rotate(pitchWithMap ? this.transform.angle : -this.transform.angle);
+                                }
+                            } else {
+                                // No offset -> this symbol hasn't been placed since coming on-screen
+                                // No single box is particularly meaningful and all of them would be too noisy
+                                // Use the center box just to show something's there, but mark it "not used"
+                                used = false;
                             }
                         }
 
-                        updateCollisionVertices(bucket.collisionBox.collisionVertexArray, opacityState.text.placed, false, shift.x, shift.y);
+                        updateCollisionVertices(bucket.collisionBox.collisionVertexArray, opacityState.text.placed, !used, shift.x, shift.y);
                     }
 
                     if (collisionArrays.iconBox) {
