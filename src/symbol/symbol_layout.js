@@ -104,8 +104,10 @@ export function performSymbolLayout(bucket: SymbolBucket,
         const fontstack = layout.get('text-font').evaluate(feature, {}).join(',');
         const glyphPositionMap = glyphPositions;
 
-        const shapedTextOrientations = {};
-        shapedTextOrientations.horizontal = {};
+        const shapedTextOrientations = {
+            horizontal: {},
+            vertical: undefined
+        };
         const text = feature.text;
         if (text) {
             const unformattedText = text.toString();
@@ -113,14 +115,20 @@ export function performSymbolLayout(bucket: SymbolBucket,
             const spacingIfAllowed = allowsLetterSpacing(unformattedText) ? spacing : 0;
             const symbolPlacement = layout.get('symbol-placement');
             const textAnchor = layout.get('text-anchor').evaluate(feature, {});
-            // variable placement doesn't apply to line-placed labels
             const variableTextAnchor = layout.get('variable-text-anchor');
             // Layers with multiple anchors use the `variable-text-offset` property and the [x, y] offset vector
             // is calculated at placement time based on the placed `text-anchor`.
-            const textOffset: [number, number] = ((variableTextAnchor ? [0, 0] : layout.get('text-offset').evaluate(feature, {})).map((t) => t * ONE_EM): any);
-            let textJustify = textAlongLine ? "center" : layout.get('text-justify').evaluate(feature, {});
+            const textOffset: [number, number] =
+                ((variableTextAnchor ?
+                    [0, 0] :
+                    layout.get('text-offset').evaluate(feature, {}))
+                .map(t => t * ONE_EM): any);
 
-            const maxWidth =  symbolPlacement === 'point' ?
+            let textJustify = textAlongLine ?
+                "center" :
+                layout.get('text-justify').evaluate(feature, {});
+
+            const maxWidth = symbolPlacement === 'point' ?
                 layout.get('text-max-width').evaluate(feature, {}) * ONE_EM :
                 0;
 
@@ -141,7 +149,8 @@ export function performSymbolLayout(bucket: SymbolBucket,
                     } else {
                         // If using variable-text-anchor for the layer, we use a center anchor for all shapings and apply
                         // the offsets for the anchor in the placement step.
-                        const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, 'center', justification, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
+                        const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, 'center',
+                                                  justification, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
                         if (shaping) {
                             shapedTextOrientations.horizontal[justification] = shaping;
                             singleLine = shaping.lineCount === 1;
@@ -152,11 +161,13 @@ export function performSymbolLayout(bucket: SymbolBucket,
                 if (textJustify === "auto") {
                     textJustify = getAnchorJustification(textAnchor);
                 }
-                const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify, spacingIfAllowed, textOffset, ONE_EM, WritingMode.horizontal);
+                const shaping = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify, spacingIfAllowed,
+                                          textOffset, ONE_EM, WritingMode.horizontal);
                 if (shaping) shapedTextOrientations.horizontal[textJustify] = shaping;
 
                 if (allowsVerticalWritingMode(unformattedText) && textAlongLine && keepUpright) {
-                    shapedTextOrientations.vertical = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify, spacingIfAllowed, textOffset, ONE_EM, WritingMode.vertical);
+                    shapedTextOrientations.vertical = shapeText(text, glyphMap, fontstack, maxWidth, lineHeight, textAnchor, textJustify,
+                                                                spacingIfAllowed, textOffset, ONE_EM, WritingMode.vertical);
                 }
             }
 
@@ -199,10 +210,8 @@ export function getTextboxScale(tilePixelRatio: number, layoutTextSize: number) 
     return tilePixelRatio * fontScale;
 }
 
-// for variable placement, we choose the appropriate justification based on the current anchor
+// Choose the justification that matches the direction of the TextAnchor
 export function getAnchorJustification(anchor: TextAnchor): TextJustify  {
-    // top and bottom anchors will be replaced by an empty string, but both of those
-    // anchors are center justified.
     switch (anchor) {
     case 'right':
     case 'top-right':
@@ -213,9 +222,9 @@ export function getAnchorJustification(anchor: TextAnchor): TextJustify  {
     case 'bottom-left':
         return 'left';
     }
-
     return 'center';
 }
+
 /**
  * Given a feature and its shaped text and icon data, add a 'symbol
  * instance' for each _possible_ placement of the symbol feature.
@@ -271,7 +280,7 @@ function addFeature(bucket: SymbolBucket,
             bucket.collisionBoxArray, feature.index, feature.sourceLayerIndex, bucket.index,
             textBoxScale, textPadding, textAlongLine, textOffset,
             iconBoxScale, iconPadding, iconAlongLine, iconOffset,
-            feature, glyphPositionMap, sizes, layoutTextSize);
+            feature, glyphPositionMap, sizes);
     };
 
     if (symbolPlacement === 'line') {
@@ -416,8 +425,7 @@ function addSymbol(bucket: SymbolBucket,
                    iconOffset: [number, number],
                    feature: SymbolFeature,
                    glyphPositionMap: {[string]: {[number]: GlyphPosition}},
-                   sizes: Sizes,
-                   layoutTextSize: number) {
+                   sizes: Sizes) {
     const lineArray = bucket.addToLineVertexArray(anchor, line);
 
     let textCollisionFeature, iconCollisionFeature;
@@ -529,7 +537,7 @@ function addSymbol(bucket: SymbolBucket,
         numVerticalGlyphVertices,
         numIconVertices,
         0,
-        layoutTextSize,
+        textBoxScale,
         variableTextOffset);
 }
 

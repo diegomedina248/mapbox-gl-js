@@ -4,7 +4,7 @@ import CollisionIndex from './collision_index';
 import EXTENT from '../data/extent';
 import * as symbolSize from './symbol_size';
 import * as projection from './projection';
-import { getTextboxScale, getAnchorJustification } from './symbol_layout';
+import { getAnchorJustification } from './symbol_layout';
 import { getAnchorAlignment } from './shaping';
 import symbolLayerProperties from '../style/style_layer/symbol_style_layer_properties';
 import assert from 'assert';
@@ -382,7 +382,7 @@ export class Placement {
 
                         const width = textBox.x2 - textBox.x1;
                         const height = textBox.y2 - textBox.y1;
-                        const textBoxScale = getTextboxScale(bucket.tilePixelRatio, symbolInstance.layoutTextSize);
+                        const textBoxScale = symbolInstance.textBoxScale;
                         let anchors = layout.get('variable-text-anchor');
                         if (this.prevPlacement && this.prevPlacement.variableOffsets[symbolInstance.crossTileID]) {
                             const prevOffsets = this.prevPlacement.variableOffsets[symbolInstance.crossTileID];

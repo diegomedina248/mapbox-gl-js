@@ -92,7 +92,7 @@ export const symbolInstance = createLayout([
     { type: 'Uint16', name: 'numVerticalGlyphVertices' },
     { type: 'Uint16', name: 'numIconVertices' },
     { type: 'Uint32', name: 'crossTileID' },
-    { type: 'Float32', name: 'layoutTextSize'},
+    { type: 'Float32', name: 'textBoxScale'},
     { type: 'Float32', name: 'variableTextOffset'}
 ]);
 
