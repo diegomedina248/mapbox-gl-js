@@ -122,7 +122,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
                 ((variableTextAnchor ?
                     [0, 0] :
                     layout.get('text-offset').evaluate(feature, {}))
-                .map(t => t * ONE_EM): any);
+                    .map(t => t * ONE_EM): any);
 
             let textJustify = textAlongLine ?
                 "center" :
