@@ -37,7 +37,8 @@ export type Shaping = {
     left: number,
     right: number,
     writingMode: 1 | 2,
-    lineCount: number
+    lineCount: number,
+    text: string
 };
 
 export type SymbolAnchor = 'center' | 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
@@ -192,7 +193,7 @@ function shapeText(text: Formatted,
     const positionedGlyphs = [];
     const shaping = {
         positionedGlyphs,
-        text: logicalInput,
+        text: logicalInput.toString(),
         top: translate[1],
         bottom: translate[1],
         left: translate[0],
@@ -204,7 +205,6 @@ function shapeText(text: Formatted,
     shapeLines(shaping, glyphs, lines, lineHeight, textAnchor, textJustify, writingMode, spacing, verticalHeight);
     if (!positionedGlyphs.length) return false;
 
-    shaping.text = shaping.text.toString();
     return shaping;
 }
 

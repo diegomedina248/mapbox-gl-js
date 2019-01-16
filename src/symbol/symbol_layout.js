@@ -113,7 +113,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
             const unformattedText = text.toString();
             const spacing = layout.get('text-letter-spacing').evaluate(feature, {}) * ONE_EM;
             const spacingIfAllowed = allowsLetterSpacing(unformattedText) ? spacing : 0;
-            const symbolPlacement = layout.get('symbol-placement');
+
             const textAnchor = layout.get('text-anchor').evaluate(feature, {});
             const variableTextAnchor = layout.get('variable-text-anchor');
             // Layers with multiple anchors use the `variable-text-offset` property and the [x, y] offset vector
@@ -128,7 +128,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
                 "center" :
                 layout.get('text-justify').evaluate(feature, {});
 
-            const maxWidth = symbolPlacement === 'point' ?
+            const maxWidth = layout.get('symbol-placement') === 'point' ?
                 layout.get('text-max-width').evaluate(feature, {}) * ONE_EM :
                 0;
 
@@ -194,7 +194,7 @@ export function performSymbolLayout(bucket: SymbolBucket,
             }
         }
 
-        if (shapedTextOrientations.horizontal && Object.keys(shapedTextOrientations.horizontal).length || shapedIcon) {
+        if (Object.keys(shapedTextOrientations.horizontal).length || shapedIcon) {
             addFeature(bucket, feature, shapedTextOrientations, shapedIcon, glyphPositionMap, sizes);
         }
     }
@@ -202,12 +202,6 @@ export function performSymbolLayout(bucket: SymbolBucket,
     if (showCollisionBoxes) {
         bucket.generateCollisionDebugBuffers();
     }
-}
-
-export function getTextboxScale(tilePixelRatio: number, layoutTextSize: number) {
-    const glyphSize = 24,
-        fontScale = layoutTextSize / glyphSize;
-    return tilePixelRatio * fontScale;
 }
 
 // Choose the justification that matches the direction of the TextAnchor
@@ -253,10 +247,10 @@ function addFeature(bucket: SymbolBucket,
     const layout = bucket.layers[0].layout;
     const textOffset = layout.get('variable-text-anchor') ? [0, 0] : layout.get('text-offset').evaluate(feature, {});
     const iconOffset = layout.get('icon-offset').evaluate(feature, {});
-    const justifications = Object.keys(shapedTextOrientations.horizontal);
-    const defaultHorizontalShaping = justifications.length ? shapedTextOrientations.horizontal[justifications[0]] : null;
+    const defaultHorizontalShaping = getDefaultHorizontalShaping(shapedTextOrientations.horizontal);
     const glyphSize = 24,
-        textBoxScale = getTextboxScale(bucket.tilePixelRatio, layoutTextSize),
+        fontScale = layoutTextSize / glyphSize,
+        textBoxScale = bucket.tilePixelRatio * fontScale,
         textMaxBoxScale = bucket.tilePixelRatio * textMaxSize / glyphSize,
         iconBoxScale = bucket.tilePixelRatio * layoutIconSize,
         symbolMinDistance = bucket.tilePixelRatio * layout.get('symbol-spacing'),
@@ -399,6 +393,15 @@ function addTextVertices(bucket: SymbolBucket,
     return glyphQuads.length * 4;
 }
 
+function getDefaultHorizontalShaping(horizontalShaping: {[TextJustify]: Shaping}): Shaping | null {
+    // We don't care which shaping we get because this is used for collision purposes
+    // and all the justifications have the same collision box
+    for (const justification: any in horizontalShaping) {
+        return horizontalShaping[justification];
+    }
+    return null;
+}
+
 
 /**
  * Add a single label & icon placement.
@@ -470,10 +473,8 @@ function addSymbol(bucket: SymbolBucket,
     const textBoxEndIndex = textCollisionFeature ? textCollisionFeature.boxEndIndex : bucket.collisionBoxArray.length;
 
     if (shapedIcon) {
-        const justifications = Object.keys(shapedTextOrientations.horizontal);
-        const defaultHorizontalShaping: any = justifications.length ? shapedTextOrientations.horizontal[justifications[0]] : null;
         const iconQuads = getIconQuads(anchor, shapedIcon, layer,
-                            iconAlongLine, defaultHorizontalShaping,
+                            iconAlongLine, getDefaultHorizontalShaping(shapedTextOrientations.horizontal),
                             feature);
         const iconRotate = layer.layout.get('icon-rotate').evaluate(feature, {});
         iconCollisionFeature = new CollisionFeature(collisionBoxArray, line, anchor, featureIndex, sourceLayerIndex, bucketIndex, shapedIcon, iconBoxScale, iconPadding, /*align boxes to line*/false, bucket.overscaling, iconRotate);

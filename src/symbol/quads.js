@@ -47,7 +47,7 @@ export function getIconQuads(anchor: Anchor,
                       shapedIcon: PositionedIcon,
                       layer: SymbolStyleLayer,
                       alongLine: boolean,
-                      shapedText: Shaping,
+                      shapedText: Shaping | null,
                       feature: Feature): Array<SymbolQuad> {
     const image = shapedIcon.image;
     const layout = layer.layout;
