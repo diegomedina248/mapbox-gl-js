@@ -192,12 +192,23 @@ export function getVariableOffset(anchor: string, radialOffset: number) {
     return [x, y];
 }
 
+export type VariableOffset = {
+    radialOffset: number,
+    width: number,
+    height: number,
+    anchor: TextAnchor,
+    textBoxScale: number,
+    prevAnchor?: TextAnchor
+};
+
+export type CrossTileID = string | number;
+
 export class Placement {
     transform: Transform;
     collisionIndex: CollisionIndex;
-    placements: { [string | number]: JointPlacement };
-    opacities: { [string | number]: JointOpacityState };
-    variableOffsets: {[string | number]: any };
+    placements: { [CrossTileID]: JointPlacement };
+    opacities: { [CrossTileID]: JointOpacityState };
+    variableOffsets: {[CrossTileID]: VariableOffset };
     commitTime: number;
     lastPlacementChangeTime: number;
     stale: boolean;

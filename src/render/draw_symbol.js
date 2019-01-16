@@ -34,6 +34,7 @@ import type Texture from '../render/texture';
 import type {OverscaledTileID} from '../source/tile_id';
 import type {UniformValues} from './uniform_binding';
 import type {SymbolSDFUniformsType} from '../render/program/symbol_program';
+import type { CrossTileID, VariableOffset } from '../symbol/placement';
 
 export default drawSymbols;
 
@@ -51,7 +52,7 @@ type SymbolTileRenderState = {
     }
 };
 
-function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolStyleLayer, coords: Array<OverscaledTileID>, variableOffsets: any) {
+function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolStyleLayer, coords: Array<OverscaledTileID>, variableOffsets: {[CrossTileID]: VariableOffset}) {
     if (painter.renderPass !== 'translucent') return;
 
     // Disable the stencil test so that labels aren't clipped to tile boundaries.
@@ -85,14 +86,14 @@ function drawSymbols(painter: Painter, sourceCache: SourceCache, layer: SymbolSt
     }
 }
 
-function calculateVariableRenderShift(anchor, width, height, radialOffset, textBoxScale, renderTextSize, perspectiveRatio): Point {
+function calculateVariableRenderShift(anchor, width, height, radialOffset, textBoxScale, renderTextSize): Point {
     const {horizontalAlign, verticalAlign} = getAnchorAlignment(anchor);
     const shiftX = -(horizontalAlign - 0.5) * width;
     const shiftY = -(verticalAlign - 0.5) * height;
     const offset = getVariableOffset(anchor, radialOffset);
     return new Point(
-        (shiftX / textBoxScale + offset[0]) * renderTextSize * perspectiveRatio,
-        (shiftY / textBoxScale + offset[1]) * renderTextSize * perspectiveRatio
+        (shiftX / textBoxScale + offset[0]) * renderTextSize,
+        (shiftY / textBoxScale + offset[1]) * renderTextSize
     );
 }
 
@@ -112,34 +113,28 @@ function updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableO
             const tileAnchor = new Point(symbol.anchorX, symbol.anchorY);
             const projectedAnchor = symbolProjection.project(tileAnchor, pitchWithMap ? posMatrix : labelPlaneMatrix);
             const perspectiveRatio = 0.5 + 0.5 * (transform.cameraToCenterDistance / projectedAnchor.signedDistanceFromCamera);
-            let renderTextSize = symbolSize.evaluateSizeForFeature(bucket.textSizeData, size, symbol) / ONE_EM;
+            let renderTextSize = symbolSize.evaluateSizeForFeature(bucket.textSizeData, size, symbol) * perspectiveRatio / ONE_EM;
             if (pitchWithMap) {
+                // Go from size in pixels to equivalent size in tile units
                 renderTextSize *= bucket.tilePixelRatio / tileScale;
             }
 
+            const { width, height, radialOffset, textBoxScale } = variableOffset;
+
             const shift = calculateVariableRenderShift(
-                variableOffset.anchor,
-                variableOffset.width,
-                variableOffset.height,
-                variableOffset.radialOffset,
-                variableOffset.textBoxScale,
-                renderTextSize,
-                perspectiveRatio);
+                variableOffset.anchor, width, height, radialOffset, textBoxScale, renderTextSize);
+
             if (animate && variableOffset.prevAnchor && variableOffset.prevAnchor !== variableOffset.anchor) {
                 const prevShift = calculateVariableRenderShift(
-                    variableOffset.prevAnchor,
-                    variableOffset.width,
-                    variableOffset.height,
-                    variableOffset.radialOffset,
-                    variableOffset.textBoxScale,
-                    renderTextSize,
-                    perspectiveRatio);
+                    variableOffset.prevAnchor, width, height, radialOffset, textBoxScale, renderTextSize);
+
                 shift.x = shift.x * t + prevShift.x * (1 - t);
                 shift.y = shift.y * t + prevShift.y * (1 - t);
             }
 
-            // We project the anchor from tile coordinates to the label plane, then add an
-            // offset based on the label size and anchor position
+            // Usual case is that we take the projected anchor and add the pixel-based shift
+            // calculated above. In the (somewhat weird) case of pitch-aligned text, we add an equivalent
+            // tile-unit based shift to the anchor before projecting to the label plane.
             const shiftedAnchor = pitchWithMap ?
                 symbolProjection.project(tileAnchor.add(shift), labelPlaneMatrix).point :
                 projectedAnchor.point.add(rotateWithMap ?
@@ -155,7 +150,7 @@ function updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableO
 }
 
 function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate, translateAnchor,
-    rotationAlignment, pitchAlignment, keepUpright, stencilMode, colorMode, variableOffsets) {
+                          rotationAlignment, pitchAlignment, keepUpright, stencilMode, colorMode, variableOffsets) {
 
     const context = painter.context;
     const gl = context.gl;
@@ -170,8 +165,6 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
     const rotateInShader = rotateWithMap && !pitchWithMap && !alongLine;
 
     const sortFeaturesByKey = layer.layout.get('symbol-sort-key').constantOr(1) !== undefined;
-
-    const t = easeCubicInOut(painter.symbolFadeChange);
 
     const depthMode = painter.depthModeForSublayer(0, DepthMode.ReadOnly);
 
@@ -227,6 +220,7 @@ function drawLayerSymbols(painter, sourceCache, layer, coords, isText, translate
             symbolProjection.updateLineLabels(bucket, coord.posMatrix, painter, isText, labelPlaneMatrix, glCoordMatrix, pitchWithMap, keepUpright);
         } else if (isText && size && variablePlacement) {
             const tileScale = Math.pow(2, tr.zoom - tile.tileID.overscaledZ);
+            const t = easeCubicInOut(painter.symbolFadeChange);
             updateVariableAnchors(bucket, rotateWithMap, pitchWithMap, t, variableOffsets, symbolSize,
                                   tr, labelPlaneMatrix, coord.posMatrix, tileScale, size,
                                   layer.layout.get('variable-text-anchor-animation'));
