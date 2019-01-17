@@ -10,6 +10,7 @@
     52.499167
   ],
   "zoom": 14,
+  "pitch": 60,
   "sources": {
     "mapbox": {
       "type": "vector",
@@ -47,6 +48,7 @@
         ],
         "text-max-width": 5,
         "text-justify": "auto",
+        "text-pitch-alignment": "map",
         "variable-text-anchor": [
             "center",
             "top",

@@ -46,7 +46,7 @@
           "Arial Unicode MS Bold"
         ],
         "text-max-width": 5,
-        "text-justify": "auto",
+        "text-justify": "left",
         "variable-text-anchor": [
             "center",
             "top",

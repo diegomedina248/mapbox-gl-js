@@ -10,6 +10,7 @@
     52.499167
   ],
   "zoom": 14,
+  "bearing": 90,
   "sources": {
     "mapbox": {
       "type": "vector",
